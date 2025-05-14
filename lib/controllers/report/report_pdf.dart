@@ -325,7 +325,7 @@ generatePdf({
                     pw.Text('Tipo Vagão:',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     pw.SizedBox(width: 5),
-                    pw.Text(selectedValue ?? ''),
+                    pw.Text(selectedVagao ?? ''),
                   ],
                 ),
               ],
@@ -466,7 +466,7 @@ generatePdf({
 
   final reportData = FullReportModel(
     id: uuid.v4(),
-    status: 2, // status 2 para "Concluido" 
+    status: 1, // status 1 para "Concluido" 
     prefixo: prefixoController.text,
     terminal: selectedTerminal ?? '',
     produto: selectedProduto ?? '',

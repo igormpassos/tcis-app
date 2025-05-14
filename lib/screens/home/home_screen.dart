@@ -26,7 +26,8 @@ class _HomePageState extends State<HomePage> {
   Future<void> loadReports() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList('full_reports') ?? [];
-    final reports = data.map((e) => FullReportModel.fromJson(jsonDecode(e))).toList();
+    final reports =
+        data.map((e) => FullReportModel.fromJson(jsonDecode(e))).toList();
     setState(() {
       fullReports = reports.reversed.toList();
     });
@@ -100,24 +101,31 @@ class _HomePageState extends State<HomePage> {
                   padding: const EdgeInsets.only(left: 20, right: 20),
                   child: Row(
                     children: [
-                      ...fullReports
-                      .where((report) => report.status == 0)
-                      .map(
-                        (report) => Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: reportCard(
-                            title: report.prefixo,
-                            iconSrc: "assets/icons/ios.svg",
-                            color: colorPrimary,
-                            data: report.dataCriacao.toIso8601String().split("T").first,
-
-                            cliente: report.colaborador,
-                            produto: report.produto,
-                            terminal: report.terminal,
-                            pathPdf: report.pathPdf,
+                      ...fullReports.where((report) => report.status == 0).map(
+                            (report) => Padding(
+                              padding: const EdgeInsets.only(right: 10),
+                              child: reportCard(
+                                title: report.prefixo,
+                                id: report.id,
+                                //iconSrc: "assets/icons/ios.svg",
+                                color: colorPrimary,
+                                data: report.dataCriacao
+                                    .toIso8601String()
+                                    .split("T")
+                                    .first,
+                                cliente: report.colaborador,
+                                produto: report.produto,
+                                terminal: report.terminal,
+                                pathPdf: report.pathPdf,
+                                onDeleted: () {
+                                  setState(() {
+                                    fullReports
+                                        .removeWhere((r) => r.id == report.id);
+                                  });
+                                },
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
                       _BuildBlankReport(context),
                     ],
                   ),
@@ -131,36 +139,38 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.black, fontWeight: FontWeight.bold),
                 ),
               ),
-              ...fullReports
-              .where((report) => report.status == 1)
-              .map(
-                (report) => Padding(
-                  padding:
-                      const EdgeInsets.only(left: 20, right: 20, bottom: 10),
-                  child: SecondaryreportCard(
-                    title: report.prefixo,
-                    iconSrc: "assets/icons/ios.svg",
-                    colorl: colorSecondary,
-                    data: report.dataCriacao.toIso8601String().split("T").first,
-                    cliente: report.colaborador,
-                    produto: report.produto,
-                    terminal: report.terminal,
-                    pathPdf: report.pathPdf,
-                    status: "1",
+              ...fullReports.where((report) => report.status == 1).map(
+                    (report) => Padding(
+                      padding: const EdgeInsets.only(
+                          left: 20, right: 20, bottom: 10),
+                      child: SecondaryreportCard(
+                        title: report.prefixo,
+                        iconSrc: "assets/icons/ios.svg",
+                        colorl: colorSecondary,
+                        data: report.dataCriacao
+                            .toIso8601String()
+                            .split("T")
+                            .first,
+                        cliente: report.colaborador,
+                        produto: report.produto,
+                        terminal: report.terminal,
+                        pathPdf: report.pathPdf,
+                        status: "1",
+                      ),
+                    ),
                   ),
-                ),
-              ),
               if (fullReports.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Center(
                     child: Text(
                       "Nenhum relatório concluído",
-                      style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                            color: Colors.black,
-                            fontWeight: FontWeight.normal,
-                            fontSize: 16,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall!.copyWith(
+                                color: Colors.black,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 16,
+                              ),
                     ),
                   ),
                 ),

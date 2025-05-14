@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
-
+import 'package:tcis_app/components/delete_modal.dart';
 
 class reportCard extends StatelessWidget {
+  final String id;
+  final VoidCallback onDeleted;
+
   const reportCard({
     super.key,
+    required this.id,
     required this.title,
     required this.data,
     required this.cliente,
     required this.produto,
     required this.terminal,
+    required this.onDeleted,
     this.color = const Color(0xFF003C92),
-    this.iconSrc = "assets/icons/ios.svg", required String pathPdf,
+    required String pathPdf,
+    //this.iconSrc = "assets/icons/ios.svg",
   });
 
-  final String title, iconSrc, data, cliente, produto, terminal;
+  final String title, data, cliente, produto, terminal;
   final Color color;
 
   @override
@@ -49,39 +55,31 @@ class reportCard extends StatelessWidget {
                     child: Text(
                       data,
                       style: TextStyle(
-                        color: Colors.white38,
-                        fontWeight: FontWeight.w500
-                      ),
+                          color: Colors.white38, fontWeight: FontWeight.w500),
                     ),
                   ),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                        cliente,
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontWeight: FontWeight.w500
-                        ),
-                      ),
+                      cliente,
+                      style: TextStyle(
+                          color: Colors.white38, fontWeight: FontWeight.w500),
+                    ),
                   ),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                        produto,
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontWeight: FontWeight.w500
-                        ),
-                      ),
+                      produto,
+                      style: TextStyle(
+                          color: Colors.white38, fontWeight: FontWeight.w500),
+                    ),
                   ),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       terminal,
                       style: TextStyle(
-                        color: Colors.white38,
-                        fontWeight: FontWeight.w500
-                      ),
+                          color: Colors.white38, fontWeight: FontWeight.w500),
                     ),
                   ),
                   const Spacer(),
@@ -103,21 +101,26 @@ class reportCard extends StatelessWidget {
               ),
             ),
           ),
-        PopupMenuButton<String>(
-          itemBuilder: (BuildContext context) {
-            return [
-              PopupMenuItem(
-                child: Text('Editar'),
-                onTap: () => print('Editar'),
-              ),
-              PopupMenuItem(
-                child: Text('Deletar'),
-                onTap: () => print('Delete'),
-              ),
-            ];
-          },
-          icon: Icon(Icons.more_vert_outlined, color: Colors.white),
-        )
+          PopupMenuButton<String>(
+            itemBuilder: (BuildContext context) {
+              return [
+                PopupMenuItem(
+                  child: Text('Editar'),
+                  onTap: () => print('Editar'),
+                ),
+                PopupMenuItem(
+                  child: Text('Deletar'),
+                  value: 'deletar',
+                ),
+              ];
+            },
+            onSelected: (value) {
+              if (value == 'deletar') {
+                showDeleteConfirmationDialog(context, id, onDeleted);
+              }
+            },
+            icon: Icon(Icons.more_vert_outlined, color: Colors.white),
+          )
         ],
       ),
     );
