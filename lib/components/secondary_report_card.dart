@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
+
 class SecondaryreportCard extends StatelessWidget {
   const SecondaryreportCard({
     super.key,
@@ -8,12 +10,15 @@ class SecondaryreportCard extends StatelessWidget {
     required this.cliente,
     required this.produto,
     required this.terminal,
+    required this.pathPdf,
     this.colorl = const Color(0xFF003C92),
     this.status = "",
   });
 
   final String title, iconSrc, data, cliente, produto, terminal, status;
   final Color colorl;
+  
+  final dynamic pathPdf;
 
   @override
   Widget build(BuildContext context) {
@@ -56,18 +61,21 @@ class SecondaryreportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                  color: status == "Em Revisão" ? Colors.orangeAccent : Colors.lightGreen,
-                  borderRadius: BorderRadius.circular(12),
+                    color: status == "Em Revisão"
+                        ? Colors.orangeAccent
+                        : Colors.lightGreen,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                  status,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                    status,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 )
               ],
@@ -76,8 +84,8 @@ class SecondaryreportCard extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.ios_share_outlined, color: Colors.white),
             onPressed: () {
-              // Add your onPressed code here!
-              print('Exportar');
+              OpenFile.open(pathPdf);
+              print(pathPdf);
             },
           ),
           const SizedBox(
@@ -91,7 +99,6 @@ class SecondaryreportCard extends StatelessWidget {
             backgroundImage: NetworkImage(iconSrc),
             radius: 20,
           ),
-          
         ],
       ),
     );

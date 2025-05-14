@@ -1,17 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:tcis_app/constants.dart';
-import '../../model/report.dart';
-import 'components/report_card.dart';
-import 'components/secondary_report_card.dart';
+import '../../model/full_report_model.dart';
+import '../../components/report_card.dart';
+import '../../components/secondary_report_card.dart';
 import 'package:tcis_app/screens/reports/create_report.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  List<FullReportModel> fullReports = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadReports();
+  }
+
+  Future<void> loadReports() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getStringList('full_reports') ?? [];
+    final reports = data.map((e) => FullReportModel.fromJson(jsonDecode(e))).toList();
+    setState(() {
+      fullReports = reports.reversed.toList();
+    });
+  }
 
   Widget _BuildBlankReport(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      height: 250,
+      height: 230,
       width: 230,
       decoration: BoxDecoration(
         color: Color(0xFFC3C3C3),
@@ -26,7 +50,7 @@ class HomePage extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => ReportEntryScreen(),
               ),
-            );
+            ).then((_) => loadReports());
           },
         ),
       ),
@@ -60,13 +84,12 @@ class HomePage extends StatelessWidget {
                       icon: Icon(Icons.add),
                       onPressed: () {
                         Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ReportEntryScreen(),
-                        ),
-                      );
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReportEntryScreen(),
+                          ),
+                        ).then((_) => loadReports());
                       },
-                      
                     ),
                   ],
                 ),
@@ -77,26 +100,25 @@ class HomePage extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 20, right: 20),
                   child: Row(
                     children: [
-                      ...reports
-                          .map(
-                            (report) => Padding(
-                              padding: const EdgeInsets.only(right: 10),
-                              child: reportCard(
-                                title: report.title,
-                                iconSrc: report.iconSrc,
-                                color: reports.indexOf(report) % 2 == 0
-                                    ? colorPrimary
-                                    : colorSecondary,
-                                data: report.data,
-                                cliente: report.cliente,
-                                produto: report.produto,
-                                terminal: report.terminal,
-                            
-                              ),
-                            ),
-                          )
-                          ,
-                           _BuildBlankReport(context),
+                      ...fullReports
+                      .where((report) => report.status == 0)
+                      .map(
+                        (report) => Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: reportCard(
+                            title: report.prefixo,
+                            iconSrc: "assets/icons/ios.svg",
+                            color: colorPrimary,
+                            data: report.dataCriacao.toIso8601String().split("T").first,
+
+                            cliente: report.colaborador,
+                            produto: report.produto,
+                            terminal: report.terminal,
+                            pathPdf: report.pathPdf,
+                          ),
+                        ),
+                      ),
+                      _BuildBlankReport(context),
                     ],
                   ),
                 ),
@@ -109,45 +131,47 @@ class HomePage extends StatelessWidget {
                       color: Colors.black, fontWeight: FontWeight.bold),
                 ),
               ),
-              ...recentreports.map((report) => Padding(
-                    padding:
-                        const EdgeInsets.only(left: 20, right: 20, bottom: 10),
-                    child: SecondaryreportCard(
-                      title: report.title,
-                      iconSrc: report.iconSrc,
-                      colorl: recentreports.indexOf(report) % 2 == 0
-                          ? colorPrimary
-                          : colorSecondary,
-                          //: Color(0xFF9CC5FF),
-                      data: report.data,
-                      cliente: report.cliente,
-                      produto: report.produto,
-                      terminal: report.terminal,
-                      status: report.status,
-                    ),
-                  )),
-          ] + (recentreports.isEmpty
-              ? [
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
-                      child: Text(
-                        "Nenhum relatório concluido",
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall!
-                            .copyWith(
-                                color: Colors.black,
-                                fontWeight: FontWeight.normal,
-                                fontSize: 16),
-                      ),
+              ...fullReports
+              .where((report) => report.status == 1)
+              .map(
+                (report) => Padding(
+                  padding:
+                      const EdgeInsets.only(left: 20, right: 20, bottom: 10),
+                  child: SecondaryreportCard(
+                    title: report.prefixo,
+                    iconSrc: "assets/icons/ios.svg",
+                    colorl: colorSecondary,
+                    data: report.dataCriacao.toIso8601String().split("T").first,
+                    cliente: report.colaborador,
+                    produto: report.produto,
+                    terminal: report.terminal,
+                    pathPdf: report.pathPdf,
+                    status: "1",
+                  ),
+                ),
+              ),
+              if (fullReports.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      "Nenhum relatório concluído",
+                      style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.normal,
+                            fontSize: 16,
+                          ),
                     ),
                   ),
-                ]
-              : []),
+                ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
+}
+
+extension on DateTime {
+  split(String s) {}
 }

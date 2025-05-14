@@ -8,6 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image/image.dart' as img;
+import 'dart:convert';
+import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcis_app/model/full_report_model.dart'; // certifique-se que esse model está criado
 
 // Reduzir resolução e qualidade da imagem
 Future<Uint8List> compressImage(File imageFile) async {
@@ -440,10 +444,54 @@ generatePdf({
   }
 
   // --- Salvar e abrir PDF ---
-  final Directory tempDir = await getTemporaryDirectory();
-  final String tempPath = tempDir.path;
-  final String filePath = '$tempPath/relatorio_carga.pdf';
+  // final Directory tempDir = await getTemporaryDirectory();
+  // final String tempPath = tempDir.path;
+  // final String filePath = '$tempPath/${prefixoController.text}-2025.pdf';
+  final Directory appDocDir = await getApplicationDocumentsDirectory();
+  final Directory reportsDir = Directory('${appDocDir.path}/relatorios');
+
+  if (!(await reportsDir.exists())) {
+    await reportsDir.create(recursive: true);
+  }
+
+  final String filePath =
+      '${reportsDir.path}/${prefixoController.text}-${DateTime.now()}.pdf';
   final File file = File(filePath);
   file.writeAsBytesSync(await pdf.save());
+
   await OpenFile.open(filePath);
+
+  final uuid = const Uuid();
+  final prefs = await SharedPreferences.getInstance();
+
+  final reportData = FullReportModel(
+    id: uuid.v4(),
+    status: 2, // status 2 para "Concluido" 
+    prefixo: prefixoController.text,
+    terminal: selectedTerminal ?? '',
+    produto: selectedProduto ?? '',
+    colaborador: colaborador ?? '',
+    tipoVagao: selectedValue ?? '',
+    dataInicio: dataInicioController.text,
+    horarioInicio: horarioInicioController.text,
+    dataTermino: dataTerminoController.text,
+    horarioTermino: horarioTerminoController.text,
+    horarioChegada: horarioChegadaController.text,
+    horarioSaida: horarioSaidaController.text,
+    houveContaminacao: houveContaminacao ?? false,
+    contaminacaoDescricao: contaminacaoDescricao,
+    materialHomogeneo: materialHomogeneo ?? '',
+    umidadeVisivel: umidadeVisivel ?? '',
+    houveChuva: houveChuva ?? '',
+    fornecedorAcompanhou: fornecedorAcompanhou ?? '',
+    observacoes: observacoesController.text,
+    imagens: images.map((img) => img['file'].path.toString()).toList(),
+    pathPdf: filePath,
+    dataCriacao: DateTime.now(),
+  );
+
+// Salva no SharedPreferences
+  final savedReports = prefs.getStringList('full_reports') ?? [];
+  savedReports.add(jsonEncode(reportData.toJson()));
+  await prefs.setStringList('full_reports', savedReports);
 }

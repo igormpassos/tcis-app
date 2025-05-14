@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcis_app/screens/home/home_screen.dart';
 import 'package:tcis_app/screens/reports/create_report.dart';
 import 'package:tcis_app/styles.dart';
 //import 'app/views/login.dart';
@@ -31,7 +32,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/' : (context) => Login(),
-        '/home': (context) => EntryPoint(),
+        '/home': (context) => HomePage(),
         '/reports': (context) => ReportEntryScreen(),
       },
     );

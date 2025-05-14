@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
+
 
 class reportCard extends StatelessWidget {
   const reportCard({
@@ -9,7 +11,7 @@ class reportCard extends StatelessWidget {
     required this.produto,
     required this.terminal,
     this.color = const Color(0xFF003C92),
-    this.iconSrc = "assets/icons/ios.svg",
+    this.iconSrc = "assets/icons/ios.svg", required String pathPdf,
   });
 
   final String title, iconSrc, data, cliente, produto, terminal;
@@ -19,7 +21,7 @@ class reportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      height: 250,
+      height: 230,
       width: 230,
       decoration: BoxDecoration(
         color: color,
@@ -83,20 +85,20 @@ class reportCard extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  Row(
-                    children: List.generate(
-                      1,
-                      (index) => Transform.translate(
-                        offset: Offset((-10 * index).toDouble(), 0),
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundImage: AssetImage(
-                            "assets/avaters/Avatar ${index + 1}.jpg",
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // Row(
+                  //   children: List.generate(
+                  //     1,
+                  //     (index) => Transform.translate(
+                  //       offset: Offset((-10 * index).toDouble(), 0),
+                  //       child: CircleAvatar(
+                  //         radius: 20,
+                  //         backgroundImage: AssetImage(
+                  //           "assets/avaters/Avatar ${index + 1}.jpg",
+                  //         ),
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),

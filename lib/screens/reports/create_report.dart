@@ -6,6 +6,10 @@ import 'dart:io';
 import 'package:tcis_app/controllers/report/report_pdf.dart';
 import 'package:exif/exif.dart';
 import 'package:tcis_app/components/custom_loading_dialog.dart';
+import 'package:uuid/uuid.dart';
+import 'package:tcis_app/model/full_report_model.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ReportEntryScreen extends StatefulWidget {
   const ReportEntryScreen({super.key});
@@ -216,6 +220,47 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     }
   }
 
+  Future<void> saveDraft() async {
+    final uuid = const Uuid();
+    final prefs = await SharedPreferences.getInstance();
+
+    final reportData = FullReportModel(
+      id: uuid.v4(),
+      prefixo: prefixoController.text,
+      terminal: selectedTerminal ?? '',
+      produto: selectedProduto ?? '',
+      colaborador: colaborador ?? '',
+      tipoVagao: selectedValue ?? '',
+      dataInicio: dataInicioController.text,
+      horarioInicio: horarioInicioController.text,
+      dataTermino: dataTerminoController.text,
+      horarioTermino: horarioTerminoController.text,
+      horarioChegada: horarioChegadaController.text,
+      horarioSaida: horarioSaidaController.text,
+      houveContaminacao: houveContaminacao ?? false,
+      contaminacaoDescricao: contaminacaoDescricao,
+      materialHomogeneo: materialHomogeneo ?? '',
+      umidadeVisivel: umidadeVisivel ?? '',
+      houveChuva: houveChuva ?? '',
+      fornecedorAcompanhou: fornecedorAcompanhou ?? '',
+      observacoes: observacoesController.text,
+      imagens: _images.map((img) => img['file'].path.toString()).toList(),
+      pathPdf: '', // ainda não foi gerado
+      dataCriacao: DateTime.now(),
+      status: 0, // Rascunho
+    );
+
+    final savedReports = prefs.getStringList('full_reports') ?? [];
+    savedReports.add(jsonEncode(reportData.toJson()));
+    await prefs.setStringList('full_reports', savedReports);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Rascunho salvo com sucesso.')),
+    );
+
+    Navigator.popUntil(context, (route) => route.isFirst);
+  }
+  
   // Function to select date with formatted output
   Future<void> _selectDate(TextEditingController controller) async {
     DateTime? pickedDate = await showDatePicker(
@@ -326,6 +371,13 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Criar Relatório'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            tooltip: 'Salvar',
+            onPressed: saveDraft,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -728,7 +780,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                           //   }
                           // },
                           onPressed: onSubmitForm,
-                          child: const Text('Enviar'),
+                          child: const Text('Gerar Relatório'),
                         ),
                       ],
                     ),
