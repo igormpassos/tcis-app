@@ -105,24 +105,9 @@ class _HomePageState extends State<HomePage> {
                             (report) => Padding(
                               padding: const EdgeInsets.only(right: 10),
                               child: reportCard(
-                                title: report.prefixo,
-                                id: report.id,
-                                //iconSrc: "assets/icons/ios.svg",
-                                color: colorPrimary,
-                                data: report.dataCriacao
-                                    .toIso8601String()
-                                    .split("T")
-                                    .first,
-                                cliente: report.colaborador,
-                                produto: report.produto,
-                                terminal: report.terminal,
-                                pathPdf: report.pathPdf,
-                                onDeleted: () {
-                                  setState(() {
-                                    fullReports
-                                        .removeWhere((r) => r.id == report.id);
-                                  });
-                                },
+                                report: report,
+                                onDeleted: () => setState(() => loadReports()),
+                                onUpdated: () => loadReports(), // novo callback
                               ),
                             ),
                           ),

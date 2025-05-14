@@ -1,27 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
 import 'package:tcis_app/components/delete_modal.dart';
+import 'package:tcis_app/model/full_report_model.dart';
+import 'package:tcis_app/screens/reports/edit_report.dart';
 
 class reportCard extends StatelessWidget {
-  final String id;
+  final FullReportModel report;
   final VoidCallback onDeleted;
+  final VoidCallback onUpdated;
 
   const reportCard({
     super.key,
-    required this.id,
-    required this.title,
-    required this.data,
-    required this.cliente,
-    required this.produto,
-    required this.terminal,
+    required this.report,
     required this.onDeleted,
-    this.color = const Color(0xFF003C92),
-    required String pathPdf,
-    //this.iconSrc = "assets/icons/ios.svg",
+    required this.onUpdated,
   });
 
-  final String title, data, cliente, produto, terminal;
-  final Color color;
+  // getters simplificados
+  String get id => report.id;
+  String get title => report.prefixo;
+  String get data => report.dataCriacao.toIso8601String().split("T").first;
+  String get cliente => report.colaborador;
+  String get produto => report.produto;
+  String get terminal => report.terminal;
+  String get pathPdf => report.pathPdf;
+  Color get color => const Color(0xFF003C92);
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +109,7 @@ class reportCard extends StatelessWidget {
               return [
                 PopupMenuItem(
                   child: Text('Editar'),
-                  onTap: () => print('Editar'),
+                  value: 'editar',
                 ),
                 PopupMenuItem(
                   child: Text('Deletar'),
@@ -114,8 +117,16 @@ class reportCard extends StatelessWidget {
                 ),
               ];
             },
-            onSelected: (value) {
-              if (value == 'deletar') {
+            onSelected: (value) async {
+              if (value == 'editar') {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditReportScreen(report: report),
+                  ),
+                );
+                onUpdated(); // callback para atualizar Home
+              } else if (value == 'deletar') {
                 showDeleteConfirmationDialog(context, id, onDeleted);
               }
             },

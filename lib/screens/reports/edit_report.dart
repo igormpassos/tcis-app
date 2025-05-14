@@ -1,28 +1,290 @@
-import 'package:flutter/material.dart';
-import 'package:tcis_app/screens/home/home_screen.dart';
-import 'package:tcis_app/constants.dart';
-import 'package:tcis_app/utils/utils.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'package:tcis_app/controllers/report/report_pdf.dart';
-import 'package:exif/exif.dart';
-import 'package:tcis_app/components/custom_loading_dialog.dart';
-import 'package:uuid/uuid.dart';
-import 'package:tcis_app/model/full_report_model.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 
-class ReportEntryScreen extends StatefulWidget {
-  const ReportEntryScreen({super.key});
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tcis_app/components/custom_loading_dialog.dart';
+import 'package:tcis_app/constants.dart';
+import 'package:tcis_app/controllers/report/report_pdf.dart';
+import 'package:tcis_app/model/full_report_model.dart';
+import 'package:tcis_app/utils/utils.dart';
+import 'package:uuid/uuid.dart';
+import 'package:exif/exif.dart';
+import 'package:tcis_app/controllers/report/report_mananger.dart';
+
+class EditReportScreen extends StatefulWidget {
+  final FullReportModel report;
+
+  const EditReportScreen({super.key, required this.report});
 
   @override
-  State<ReportEntryScreen> createState() => _ReportEntryScreenState();
+  State<EditReportScreen> createState() => _EditReportScreenState();
 }
 
-class _ReportEntryScreenState extends State<ReportEntryScreen> {
+class _EditReportScreenState extends State<EditReportScreen> {
   final _formKey = GlobalKey<FormState>();
-  final List<Map<String, dynamic>> _images =
-      []; // Lista para armazenar as imagens e metadados
+  final List<Map<String, dynamic>> _images = [];
+
+  final TextEditingController prefixoController = TextEditingController();
+  final TextEditingController dataInicioController = TextEditingController();
+  final TextEditingController horarioChegadaController =
+      TextEditingController();
+  final TextEditingController horarioInicioController = TextEditingController();
+  final TextEditingController horarioTerminoController =
+      TextEditingController();
+  final TextEditingController horarioSaidaController = TextEditingController();
+  final TextEditingController dataTerminoController = TextEditingController();
+  final TextEditingController observacoesController = TextEditingController();
+
+  String? selectedTerminal;
+  String? selectedProduto;
+  String? selectedVagao;
+  String? colaborador;
+  String? selectedValue;
+  bool? houveContaminacao;
+  String contaminacaoDescricao = '';
+  String? materialHomogeneo;
+  String? umidadeVisivel;
+  String? houveChuva;
+  String? fornecedorAcompanhou;
+
+  void limparDropdownsVazios() {
+    if (selectedTerminal?.isEmpty ?? false) selectedTerminal = null;
+    if (selectedProduto?.isEmpty ?? false) selectedProduto = null;
+    if (selectedValue?.isEmpty ?? false) selectedValue = null;
+    if (selectedVagao?.isEmpty ?? false) selectedVagao = null;
+    if (colaborador?.isEmpty ?? false) colaborador = null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final r = widget.report;
+    prefixoController.text = r.prefixo;
+    selectedTerminal = r.terminal;
+    selectedProduto = r.produto;
+    colaborador = r.colaborador;
+    selectedValue = r.tipoVagao;
+    dataInicioController.text = r.dataInicio;
+    horarioInicioController.text = r.horarioInicio;
+    dataTerminoController.text = r.dataTermino;
+    horarioTerminoController.text = r.horarioTermino;
+    horarioChegadaController.text = r.horarioChegada;
+    horarioSaidaController.text = r.horarioSaida;
+    houveContaminacao = r.houveContaminacao;
+    contaminacaoDescricao = r.contaminacaoDescricao;
+    materialHomogeneo = r.materialHomogeneo;
+    umidadeVisivel = r.umidadeVisivel;
+    houveChuva = r.houveChuva;
+    fornecedorAcompanhou = r.fornecedorAcompanhou;
+    observacoesController.text = r.observacoes;
+
+    limparDropdownsVazios();
+
+    for (var path in r.imagens) {
+      final file = File(path);
+      if (file.existsSync()) {
+        _images.add({
+          'file': file,
+          'timestamp': file.lastModifiedSync(),
+        });
+      }
+    }
+  }
+
+  Future<void> saveAsDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final updatedReport = widget.report.copyWith(
+      prefixo: prefixoController.text,
+      terminal: selectedTerminal ?? '',
+      produto: selectedProduto ?? '',
+      colaborador: colaborador ?? '',
+      tipoVagao: selectedValue ?? '',
+      dataInicio: dataInicioController.text,
+      horarioInicio: horarioInicioController.text,
+      dataTermino: dataTerminoController.text,
+      horarioTermino: horarioTerminoController.text,
+      horarioChegada: horarioChegadaController.text,
+      horarioSaida: horarioSaidaController.text,
+      houveContaminacao: houveContaminacao ?? false,
+      contaminacaoDescricao: contaminacaoDescricao,
+      materialHomogeneo: materialHomogeneo ?? '',
+      umidadeVisivel: umidadeVisivel ?? '',
+      houveChuva: houveChuva ?? '',
+      fornecedorAcompanhou: fornecedorAcompanhou ?? '',
+      observacoes: observacoesController.text,
+      imagens: _images.map((img) => img['file'].path.toString()).toList(),
+      status: 0,
+    );
+
+    final existing = prefs.getStringList('full_reports') ?? [];
+    final updated =
+        existing.where((e) => !e.contains(widget.report.id)).toList();
+    updated.add(jsonEncode(updatedReport.toJson()));
+    await prefs.setStringList('full_reports', updated);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Rascunho atualizado com sucesso!')),
+    );
+    Navigator.pop(context);
+  }
+
+  Future<void> generateFinalReport() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) =>
+          const CustomLoadingDialog(message: "Gerando relatório..."),
+    );
+
+    try {
+      final updatedBase = widget.report.copyWith(
+        prefixo: prefixoController.text,
+        terminal: selectedTerminal ?? '',
+        produto: selectedProduto ?? '',
+        colaborador: colaborador ?? '',
+        tipoVagao: selectedValue ?? '',
+        dataInicio: dataInicioController.text,
+        horarioInicio: horarioInicioController.text,
+        dataTermino: dataTerminoController.text,
+        horarioTermino: horarioTerminoController.text,
+        horarioChegada: horarioChegadaController.text,
+        horarioSaida: horarioSaidaController.text,
+        houveContaminacao: houveContaminacao ?? false,
+        contaminacaoDescricao: contaminacaoDescricao,
+        materialHomogeneo: materialHomogeneo ?? '',
+        umidadeVisivel: umidadeVisivel ?? '',
+        houveChuva: houveChuva ?? '',
+        fornecedorAcompanhou: fornecedorAcompanhou ?? '',
+        observacoes: observacoesController.text,
+        imagens: _images.map((img) => img['file'].path.toString()).toList(),
+        status: 1,
+        dataCriacao: DateTime.now(),
+      );
+
+      final pdfPath = await generatePdf(
+        prefixoController: prefixoController,
+        selectedTerminal: selectedTerminal,
+        selectedProduto: selectedProduto,
+        selectedVagao: selectedVagao,
+        colaborador: colaborador,
+        selectedValue: selectedValue,
+        dataInicioController: dataInicioController,
+        horarioChegadaController: horarioChegadaController,
+        horarioInicioController: horarioInicioController,
+        horarioTerminoController: horarioTerminoController,
+        horarioSaidaController: horarioSaidaController,
+        dataTerminoController: dataTerminoController,
+        houveContaminacao: houveContaminacao,
+        contaminacaoDescricao: contaminacaoDescricao,
+        materialHomogeneo: materialHomogeneo,
+        umidadeVisivel: umidadeVisivel,
+        houveChuva: houveChuva,
+        fornecedorAcompanhou: fornecedorAcompanhou,
+        observacoesController: observacoesController,
+        images: _images,
+      );
+
+      // Salva o relatório final com o path atualizado
+      final updatedFinal = updatedBase.copyWith(pathPdf: pdfPath);
+      await saveOrUpdateReport(updatedFinal);
+      
+      if (mounted) {
+        Navigator.of(context).pop(); // fecha loading
+        Navigator.popUntil(
+            context, (route) => route.isFirst); // volta para a home
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // fecha loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao gerar relatório: $e")),
+        );
+      }
+    }
+  }
+
+  // Seletor de data
+  Future<void> _selectDate(TextEditingController controller) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: colorPrimary,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (pickedDate != null) {
+      setState(() {
+        controller.text = formatDate(pickedDate);
+      });
+    }
+  }
+
+// Seletor de horário
+  Future<void> _selectTime(TextEditingController controller) async {
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      initialEntryMode: TimePickerEntryMode.inputOnly,
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: colorPrimary,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (pickedTime != null) {
+      controller.text =
+          '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
+    }
+  }
+
+// Chips reutilizáveis
+  Widget buildChoiceChips(String label, List<String> options,
+      String? selectedOption, Function(String) onSelected) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        Wrap(
+          spacing: 2.0,
+          runSpacing: 0.0,
+          children: options.map((option) {
+            return ChoiceChip(
+              label: Text(option),
+              selected: selectedOption == option,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    onSelected(option);
+                  });
+                }
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
 
   Future<DateTime?> getImageCreationDate(File file) async {
     final bytes = await file.readAsBytes();
@@ -72,6 +334,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     });
   }
 
+// Galeria de imagens
   Widget _buildImageGrid() {
     return Wrap(
       spacing: 8.0,
@@ -92,6 +355,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
           ),
         ),
         // Exibir imagens adicionadas com data e hora
+
         ..._images.asMap().entries.map((entry) {
           int index = entry.key;
           Map<String, dynamic> image = entry.value;
@@ -113,38 +377,15 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                 top: 0,
                 right: 0,
                 child: GestureDetector(
-                  onTap: () => _removeImage(index),
+                  onTap: () => setState(() => _images.removeAt(index)),
                   child: Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(4),
                     child:
                         const Icon(Icons.close, color: Colors.white, size: 16),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  width: 100,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(10),
-                      bottomRight: Radius.circular(10),
-                    ),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Text(
-                    'Registrado em: ${image['timestamp'].day}/${image['timestamp'].month}/${image['timestamp'].year} ${image['timestamp'].hour}:${image['timestamp'].minute}',
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
-                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
@@ -155,225 +396,16 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     );
   }
 
-  // Controllers and variables to store form data
-  final TextEditingController prefixoController = TextEditingController();
-  String? selectedTerminal;
-  String? selectedProduto;
-  String? selectedVagao;
-  String? colaborador;
-  String? selectedValue;
-  final TextEditingController dataInicioController = TextEditingController();
-  final TextEditingController horarioChegadaController =
-      TextEditingController();
-  final TextEditingController horarioInicioController = TextEditingController();
-  final TextEditingController horarioTerminoController =
-      TextEditingController();
-  final TextEditingController horarioSaidaController = TextEditingController();
-  final TextEditingController dataTerminoController = TextEditingController();
-  bool? houveContaminacao;
-  String contaminacaoDescricao = '';
-  String? materialHomogeneo;
-  String? umidadeVisivel;
-  String? houveChuva;
-  String? fornecedorAcompanhou;
-  final TextEditingController observacoesController = TextEditingController();
-
-  Future<void> onSubmitForm() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      // Mostrar loading usando componente
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) =>
-            const CustomLoadingDialog(message: "Gerando relatório..."),
-      );
-
-      try {
-        await generatePdf(
-          prefixoController: prefixoController,
-          selectedTerminal: selectedTerminal,
-          selectedProduto: selectedProduto,
-          selectedVagao: selectedVagao,
-          colaborador: colaborador,
-          selectedValue: selectedValue,
-          dataInicioController: dataInicioController,
-          horarioChegadaController: horarioChegadaController,
-          horarioInicioController: horarioInicioController,
-          horarioTerminoController: horarioTerminoController,
-          horarioSaidaController: horarioSaidaController,
-          dataTerminoController: dataTerminoController,
-          houveContaminacao: houveContaminacao,
-          contaminacaoDescricao: contaminacaoDescricao,
-          materialHomogeneo: materialHomogeneo,
-          umidadeVisivel: umidadeVisivel,
-          houveChuva: houveChuva,
-          fornecedorAcompanhou: fornecedorAcompanhou,
-          observacoesController: observacoesController,
-          images: _images,
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao gerar relatório: $e")),
-        );
-      } finally {
-        Navigator.of(context).pop(); // Fecha o loading
-      }
-    }
-  }
-
-  Future<void> saveDraft() async {
-    final uuid = const Uuid();
-    final prefs = await SharedPreferences.getInstance();
-
-    final reportData = FullReportModel(
-      id: uuid.v4(),
-      prefixo: prefixoController.text,
-      terminal: selectedTerminal ?? '',
-      produto: selectedProduto ?? '',
-      colaborador: colaborador ?? '',
-      tipoVagao: selectedValue ?? '',
-      dataInicio: dataInicioController.text,
-      horarioInicio: horarioInicioController.text,
-      dataTermino: dataTerminoController.text,
-      horarioTermino: horarioTerminoController.text,
-      horarioChegada: horarioChegadaController.text,
-      horarioSaida: horarioSaidaController.text,
-      houveContaminacao: houveContaminacao ?? false,
-      contaminacaoDescricao: contaminacaoDescricao,
-      materialHomogeneo: materialHomogeneo ?? '',
-      umidadeVisivel: umidadeVisivel ?? '',
-      houveChuva: houveChuva ?? '',
-      fornecedorAcompanhou: fornecedorAcompanhou ?? '',
-      observacoes: observacoesController.text,
-      imagens: _images.map((img) => img['file'].path.toString()).toList(),
-      pathPdf: '', // ainda não foi gerado
-      dataCriacao: DateTime.now(),
-      status: 0, // Rascunho
-    );
-
-    final savedReports = prefs.getStringList('full_reports') ?? [];
-    savedReports.add(jsonEncode(reportData.toJson()));
-    await prefs.setStringList('full_reports', savedReports);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Rascunho salvo com sucesso.')),
-    );
-
-    Navigator.popUntil(context, (route) => route.isFirst);
-  }
-
-  // Function to select date with formatted output
-  Future<void> _selectDate(TextEditingController controller) async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: colorPrimary, // header background color
-              onSurface: Colors.black, // body text color
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (pickedDate != null) {
-      setState(() {
-        controller.text = formatDate(
-            pickedDate); // Usando a função formatDate para formatar a data
-      });
-    }
-  }
-
-  // Function to select time with formatted output
-  Future<void> _selectTime(TextEditingController controller) async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      initialEntryMode: TimePickerEntryMode.inputOnly,
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: colorPrimary, // header background color
-              onSurface: Colors.black, // body text color
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (pickedTime != null) {
-      controller.text =
-          '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
-    }
-  }
-
-  Widget buildChoiceChips(String label, List<String> options,
-      String? selectedOption, Function(String) onSelected) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label),
-        Wrap(
-          spacing: 2.0,
-          runSpacing: 0.0,
-          children: options.map((option) {
-            return ChoiceChip(
-              label: Text(option),
-              selected: selectedOption == option,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    onSelected(option);
-                  });
-                }
-              },
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  // Reset form fields
-  void _resetForm() {
-    prefixoController.clear();
-    selectedTerminal = null;
-    selectedProduto = null;
-    selectedVagao = null;
-    colaborador = null;
-    dataInicioController.clear();
-    horarioChegadaController.clear();
-    horarioInicioController.clear();
-    horarioTerminoController.clear();
-    horarioSaidaController.clear();
-    dataTerminoController.clear();
-    houveContaminacao = null;
-    contaminacaoDescricao = '';
-    materialHomogeneo = null;
-    umidadeVisivel = null;
-    houveChuva = null;
-    fornecedorAcompanhou = null;
-    observacoesController.clear();
-    _images.clear();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Criar Relatório'),
+        title: Text(prefixoController.text),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
-            tooltip: 'Salvar',
-            onPressed: saveDraft,
+            tooltip: 'Salvar Rascunho',
+            onPressed: saveAsDraft,
           ),
         ],
       ),
@@ -777,7 +809,8 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                                         content: Text(
                                             'Relatório enviado com sucesso!')),
                                   );
-                                  await onSubmitForm(); // Agora funciona
+                                  await generateFinalReport();
+                                  (); // Agora funciona
                                   //_resetForm();
                                   Navigator.popUntil(
                                       context, (route) => route.isFirst);
@@ -787,7 +820,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                             ElevatedButton.icon(
                               icon: const Icon(Icons.save),
                               label: const Text('Salvar em Rascunho'),
-                              onPressed: saveDraft,
+                              onPressed: saveAsDraft,
                             ),
                           ],
                         ),

@@ -106,4 +106,57 @@ class FullReportModel {
       status: json['status'] ?? 0, // ou qualquer valor padrão como -1
     );
   }
+
+  FullReportModel copyWith({
+    String? id,
+    String? prefixo,
+    String? terminal,
+    String? produto,
+    String? colaborador,
+    String? tipoVagao,
+    String? dataInicio,
+    String? horarioInicio,
+    String? dataTermino,
+    String? horarioTermino,
+    String? horarioChegada,
+    String? horarioSaida,
+    bool? houveContaminacao,
+    String? contaminacaoDescricao,
+    String? materialHomogeneo,
+    String? umidadeVisivel,
+    String? houveChuva,
+    String? fornecedorAcompanhou,
+    String? observacoes,
+    List<String>? imagens,
+    String? pathPdf,
+    DateTime? dataCriacao,
+    int? status,
+  }) {
+    return FullReportModel(
+      id: id ?? this.id,
+      prefixo: prefixo ?? this.prefixo,
+      terminal: terminal ?? this.terminal,
+      produto: produto ?? this.produto,
+      colaborador: colaborador ?? this.colaborador,
+      tipoVagao: tipoVagao ?? this.tipoVagao,
+      dataInicio: dataInicio ?? this.dataInicio,
+      horarioInicio: horarioInicio ?? this.horarioInicio,
+      dataTermino: dataTermino ?? this.dataTermino,
+      horarioTermino: horarioTermino ?? this.horarioTermino,
+      horarioChegada: horarioChegada ?? this.horarioChegada,
+      horarioSaida: horarioSaida ?? this.horarioSaida,
+      houveContaminacao: houveContaminacao ?? this.houveContaminacao,
+      contaminacaoDescricao:
+          contaminacaoDescricao ?? this.contaminacaoDescricao,
+      materialHomogeneo: materialHomogeneo ?? this.materialHomogeneo,
+      umidadeVisivel: umidadeVisivel ?? this.umidadeVisivel,
+      houveChuva: houveChuva ?? this.houveChuva,
+      fornecedorAcompanhou: fornecedorAcompanhou ?? this.fornecedorAcompanhou,
+      observacoes: observacoes ?? this.observacoes,
+      imagens: imagens ?? this.imagens,
+      pathPdf: pathPdf ?? this.pathPdf,
+      dataCriacao: dataCriacao ?? this.dataCriacao,
+      status: status ?? this.status,
+    );
+  }
 }
