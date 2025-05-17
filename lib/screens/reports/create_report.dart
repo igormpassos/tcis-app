@@ -43,24 +43,39 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   // Função para selecionar várias imagens da galeria
   Future<void> _addImage() async {
     final picker = ImagePicker();
-    final pickedFiles = await picker.pickMultiImage();
 
-    if (pickedFiles.isNotEmpty) {
-      List<Map<String, dynamic>> newImages = [];
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => const CustomLoadingDialog(message: "Carregando imagens..."),
+    );
 
-      for (var pickedFile in pickedFiles) {
-        final file = File(pickedFile.path);
-        final creationDate = await getImageCreationDate(file) ??
-            DateTime.now(); // Se não achar no EXIF, usa a data atual
-        newImages.add({
-          'file': file,
-          'timestamp': creationDate,
+    try {
+      final pickedFiles = await picker.pickMultiImage();
+
+      if (pickedFiles.isNotEmpty) {
+        List<Map<String, dynamic>> newImages = [];
+
+        for (var pickedFile in pickedFiles) {
+          final file = File(pickedFile.path);
+          final creationDate =
+              await getImageCreationDate(file) ?? DateTime.now();
+          newImages.add({'file': file, 'timestamp': creationDate});
+        }
+
+        setState(() {
+          _images.addAll(newImages);
         });
       }
-
-      setState(() {
-        _images.addAll(newImages);
-      });
+    } catch (e) {
+      // Exibir erro opcionalmente
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao carregar imagens: $e')));
+    } finally {
+      Navigator.of(context).pop(); // Fecha o loading
     }
   }
 
@@ -119,12 +134,15 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(4),
-                    child:
-                        const Icon(Icons.close, color: Colors.white, size: 16),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
               ),
-              Positioned(
+              /*Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
@@ -138,15 +156,17 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                       bottomRight: Radius.circular(10),
                     ),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   child: Text(
                     'Registrado em: ${image['timestamp'].day}/${image['timestamp'].month}/${image['timestamp'].year} ${image['timestamp'].hour}:${image['timestamp'].minute}',
                     style: const TextStyle(color: Colors.white, fontSize: 10),
                     textAlign: TextAlign.center,
                   ),
                 ),
-              ),
+              ),*/
             ],
           );
         }),
@@ -183,8 +203,8 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) =>
-            const CustomLoadingDialog(message: "Gerando relatório..."),
+        builder:
+            (_) => const CustomLoadingDialog(message: "Gerando relatório..."),
       );
 
       try {
@@ -211,9 +231,9 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
           images: _images,
         );
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao gerar relatório: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Erro ao gerar relatório: $e")));
       } finally {
         Navigator.of(context).pop(); // Fecha o loading
       }
@@ -254,9 +274,9 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     savedReports.add(jsonEncode(reportData.toJson()));
     await prefs.setStringList('full_reports', savedReports);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Rascunho salvo com sucesso.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Rascunho salvo com sucesso.')));
 
     Navigator.popUntil(context, (route) => route.isFirst);
   }
@@ -283,7 +303,8 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     if (pickedDate != null) {
       setState(() {
         controller.text = formatDate(
-            pickedDate); // Usando a função formatDate para formatar a data
+          pickedDate,
+        ); // Usando a função formatDate para formatar a data
       });
     }
   }
@@ -295,14 +316,17 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       initialTime: TimeOfDay.now(),
       initialEntryMode: TimePickerEntryMode.inputOnly,
       builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: colorPrimary, // header background color
-              onSurface: Colors.black, // body text color
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: Theme(
+            data: ThemeData.light().copyWith(
+              colorScheme: ColorScheme.light(
+                primary: colorPrimary,
+                onSurface: Colors.black,
+              ),
             ),
+            child: child!,
           ),
-          child: child!,
         );
       },
     );
@@ -312,8 +336,12 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     }
   }
 
-  Widget buildChoiceChips(String label, List<String> options,
-      String? selectedOption, Function(String) onSelected) {
+  Widget buildChoiceChips(
+    String label,
+    List<String> options,
+    String? selectedOption,
+    Function(String) onSelected,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -321,19 +349,20 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         Wrap(
           spacing: 2.0,
           runSpacing: 0.0,
-          children: options.map((option) {
-            return ChoiceChip(
-              label: Text(option),
-              selected: selectedOption == option,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    onSelected(option);
-                  });
-                }
-              },
-            );
-          }).toList(),
+          children:
+              options.map((option) {
+                return ChoiceChip(
+                  label: Text(option),
+                  selected: selectedOption == option,
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        onSelected(option);
+                      });
+                    }
+                  },
+                );
+              }).toList(),
         ),
         const SizedBox(height: 16),
       ],
@@ -365,436 +394,544 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Criar Relatório'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            tooltip: 'Salvar',
-            onPressed: saveDraft,
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dados do Relatório',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Prefixo *'),
-                        TextFormField(
-                          controller: prefixoController,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Campo obrigatório';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Terminal *'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight
-                              .withAlpha((0.9 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(15),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: selectedTerminal,
-                          onChanged: (value) =>
-                              setState(() => selectedTerminal = value),
-                          items: [
-                            'TSA - Terminal Serra Azul',
-                            'SZD - Sarzedo Velho (Itaminas)',
-                            'TCS - Terminal Sarzedo Novo',
-                            'TCM - Terminal Multitudo',
-                            'TCI - Terminal de Itutinga',
-                            'Outro',
-                          ].map((terminal) {
-                            return DropdownMenuItem(
-                              value: terminal,
-                              child: Text(terminal),
-                            );
-                          }).toList(),
-                          validator: (value) =>
-                              value == null ? 'Campo obrigatório' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Colaborador'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: colaborador,
-                          onChanged: (value) =>
-                              setState(() => colaborador = value),
-                          items: [
-                            'Colaborador 1',
-                            'Colaborador 2',
-                            'Colaborador 3'
-                          ].map((colab) {
-                            return DropdownMenuItem(
-                              value: colab,
-                              child: Text(colab),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Produto *'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: selectedProduto,
-                          onChanged: (value) =>
-                              setState(() => selectedProduto = value),
-                          items: ['Produto 1', 'Produto 2', 'Produto 3']
-                              .map((produto) {
-                            return DropdownMenuItem(
-                              value: produto,
-                              child: Text(produto),
-                            );
-                          }).toList(),
-                          validator: (value) =>
-                              value == null ? 'Campo obrigatório' : null,
-                        ),
-                      ],
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Criar Relatório'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.save),
+              tooltip: 'Salvar',
+              onPressed: saveDraft,
+            ),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Dados do Relatório',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('Prefixo *'),
+                          TextFormField(
+                            controller: prefixoController,
+                            decoration: const InputDecoration(
+                              hintText: 'ABC-1234',
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Campo obrigatório';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('Terminal *'),
+                          DropdownButtonFormField<String>(
+                            dropdownColor: backgroundColorLight.withAlpha(
+                              (0.9 * 255).toInt(),
+                            ),
+                            borderRadius: BorderRadius.circular(15),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: TextDarkColor,
+                            ),
+                            hint: Text(
+                              "Selecione uma opção",
+                              style: TextStyle(color: LabelColor),
+                            ),
+                            value: selectedTerminal,
+                            onChanged:
+                                (value) =>
+                                    setState(() => selectedTerminal = value),
+                            items:
+                                [
+                                  'TSA - Terminal Serra Azul',
+                                  'SZD - Sarzedo Velho (Itaminas)',
+                                  'TCS - Terminal Sarzedo Novo',
+                                  'TCM - Terminal Multitudo',
+                                  'TCI - Terminal de Itutinga',
+                                  'Outro',
+                                ].map((terminal) {
+                                  return DropdownMenuItem(
+                                    value: terminal,
+                                    child: Text(terminal),
+                                  );
+                                }).toList(),
+                            validator:
+                                (value) =>
+                                    value == null ? 'Campo obrigatório' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('Colaborador'),
+                          DropdownButtonFormField<String>(
+                            dropdownColor: backgroundColorLight.withOpacity(
+                              0.9,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: TextDarkColor,
+                            ),
+                            hint: Text(
+                              "Selecione uma opção",
+                              style: TextStyle(color: LabelColor),
+                            ),
+                            value: colaborador,
+                            onChanged:
+                                (value) => setState(() => colaborador = value),
+                            items:
+                                [
+                                  'Colaborador 1',
+                                  'Colaborador 2',
+                                  'Colaborador 3',
+                                ].map((colab) {
+                                  return DropdownMenuItem(
+                                    value: colab,
+                                    child: Text(colab),
+                                  );
+                                }).toList(),
+                            validator:
+                                (value) =>
+                                    value == null ? 'Campo obrigatório' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('Produto *'),
+                          DropdownButtonFormField<String>(
+                            dropdownColor: backgroundColorLight.withOpacity(
+                              0.9,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: TextDarkColor,
+                            ),
+                            hint: Text(
+                              "Selecione uma opção",
+                              style: TextStyle(color: LabelColor),
+                            ),
+                            value: selectedProduto,
+                            onChanged:
+                                (value) =>
+                                    setState(() => selectedProduto = value),
+                            items:
+                                ['Produto 1', 'Produto 2', 'Produto 3'].map((
+                                  produto,
+                                ) {
+                                  return DropdownMenuItem(
+                                    value: produto,
+                                    child: Text(produto),
+                                  );
+                                }).toList(),
+                            validator:
+                                (value) =>
+                                    value == null ? 'Campo obrigatório' : null,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                // Dados da Locomotiva
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dados da Locomotiva',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário Chegada'),
-                                  TextFormField(
-                                    controller: horarioChegadaController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.train),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioChegadaController),
-                                  ),
-                                ],
-                              ),
+                  const SizedBox(height: 16),
+                  // Dados da Locomotiva
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Dados da Locomotiva',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário Saída'),
-                                  TextFormField(
-                                    controller: horarioSaidaController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.train),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioSaidaController),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Tipo de Vagão'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: selectedVagao,
-                          onChanged: (value) =>
-                              setState(() => selectedVagao = value),
-                          items: ['Vagão 1', 'Vagão 2', 'Vagão 3', 'Vagão 4']
-                              .map((vagao) {
-                            return DropdownMenuItem(
-                              value: vagao,
-                              child: Text(vagao),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dados do Carregamento',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Data Início *'),
-                                  TextFormField(
-                                    controller: dataInicioController,
-                                    decoration: InputDecoration(
-                                      suffixIcon: Icon(Icons.calendar_today),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectDate(dataInicioController),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Campo obrigatório';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário de Início'),
-                                  TextFormField(
-                                    controller: horarioInicioController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.access_time),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioInicioController),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Data Término *'),
-                                  TextFormField(
-                                    controller: dataTerminoController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.calendar_today),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectDate(dataTerminoController),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Campo obrigatório';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário de Término'),
-                                  TextFormField(
-                                    controller: horarioTerminoController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.access_time),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioTerminoController),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Houve registro de contaminação? *'),
-                        Row(
-                          children: [
-                            ChoiceChip(
-                              label: const Text('Sim'),
-                              selected: houveContaminacao == true,
-                              onSelected: (selected) =>
-                                  setState(() => houveContaminacao = true),
-                            ),
-                            const SizedBox(width: 5),
-                            ChoiceChip(
-                              label: const Text('Não'),
-                              selected: houveContaminacao == false,
-                              onSelected: (selected) =>
-                                  setState(() => houveContaminacao = false),
-                            ),
-                          ],
-                        ),
-                        if (houveContaminacao == true)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
                             children: [
-                              const Text(
-                                  'Descreva o contaminante, onde foi encontrado e se foi retirado *'),
-                              TextFormField(
-                                controller: TextEditingController(
-                                    text: contaminacaoDescricao),
-                                maxLines: 3,
-                                validator: (value) {
-                                  if (houveContaminacao == true &&
-                                      (value == null || value.isEmpty)) {
-                                    return 'Campo obrigatório';
-                                  }
-                                  return null;
-                                },
-                                onChanged: (value) =>
-                                    contaminacaoDescricao = value,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Horário Chegada'),
+                                    TextFormField(
+                                      controller: horarioChegadaController,
+                                      decoration: const InputDecoration(
+                                        suffixIcon: Icon(Icons.train),
+                                      ),
+                                      readOnly: true,
+                                      onTap:
+                                          () => _selectTime(
+                                            horarioChegadaController,
+                                          ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Campo obrigatório';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Horário Saída'),
+                                    TextFormField(
+                                      controller: horarioSaidaController,
+                                      decoration: const InputDecoration(
+                                        suffixIcon: Icon(Icons.train),
+                                      ),
+                                      readOnly: true,
+                                      onTap:
+                                          () => _selectTime(
+                                            horarioSaidaController,
+                                          ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Campo obrigatório';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                        const SizedBox(height: 16),
-                        // Material homogêneo
-                        buildChoiceChips(
-                          'Material homogêneo (mesmo material, mesma cor, mesmo tipo)?',
-                          [
-                            'Sim',
-                            'Não',
-                            'Não, mas carregado em vagões separados'
-                          ],
-                          materialHomogeneo,
-                          (value) => materialHomogeneo = value,
-                        ),
-
-                        // Umidade visível
-                        buildChoiceChips(
-                          'Umidade visível?',
-                          ['Sim', 'Não'],
-                          umidadeVisivel,
-                          (value) => umidadeVisivel = value,
-                        ),
-
-                        // Houve chuva durante a carga?
-                        buildChoiceChips(
-                          'Houve chuva durante a carga?',
-                          ['Sim', 'Não', 'Somente em partes da carga'],
-                          houveChuva,
-                          (value) => houveChuva = value,
-                        ),
-
-                        // Fornecedor acompanhou a carga e a preparação das amostras?
-                        buildChoiceChips(
-                          'Fornecedor acompanhou a carga e a preparação das amostras?',
-                          [
-                            'Sim',
-                            'Não',
-                            'Somente parte da carga',
-                            'Somente a carga',
-                            'Somente a preparação das amostras'
-                          ],
-                          fornecedorAcompanhou,
-                          (value) => fornecedorAcompanhou = value,
-                        ),
-
-                        const Text('Observações'),
-                        TextFormField(
-                          controller: observacoesController,
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 16),
-
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Imagens',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildImageGrid(),
-                        const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.picture_as_pdf),
-                              label: const Text('Gerar PDF e Criar relatório'),
-                              onPressed: () async {
-                                if (_formKey.currentState?.validate() ??
-                                    false) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Relatório enviado com sucesso!')),
+                          const SizedBox(height: 16),
+                          const Text('Tipo de Vagão'),
+                          DropdownButtonFormField<String>(
+                            dropdownColor: backgroundColorLight.withOpacity(
+                              0.9,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: TextDarkColor,
+                            ),
+                            hint: Text(
+                              "Selecione uma opção",
+                              style: TextStyle(color: LabelColor),
+                            ),
+                            value: selectedVagao,
+                            onChanged:
+                                (value) =>
+                                    setState(() => selectedVagao = value),
+                            items:
+                                [
+                                  'Vagão 1',
+                                  'Vagão 2',
+                                  'Vagão 3',
+                                  'Vagão 4',
+                                ].map((vagao) {
+                                  return DropdownMenuItem(
+                                    value: vagao,
+                                    child: Text(vagao),
                                   );
-                                  await onSubmitForm(); // Agora funciona
-                                  //_resetForm();
-                                  Navigator.popUntil(
-                                      context, (route) => route.isFirst);
-                                }
-                              },
-                            ),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.save),
-                              label: const Text('Salvar em Rascunho'),
-                              onPressed: saveDraft,
-                            ),
-                          ],
-                        ),
-                      ],
+                                }).toList(),
+                            validator:
+                                (value) =>
+                                    value == null ? 'Campo obrigatório' : null,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Dados do Carregamento',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Data Início *'),
+                                    TextFormField(
+                                      controller: dataInicioController,
+                                      decoration: InputDecoration(
+                                        suffixIcon: Icon(Icons.calendar_today),
+                                      ),
+                                      readOnly: true,
+                                      onTap:
+                                          () =>
+                                              _selectDate(dataInicioController),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Campo obrigatório';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Horário de Início'),
+                                    TextFormField(
+                                      controller: horarioInicioController,
+                                      decoration: const InputDecoration(
+                                        suffixIcon: Icon(Icons.access_time),
+                                      ),
+                                      readOnly: true,
+                                      onTap:
+                                          () => _selectTime(
+                                            horarioInicioController,
+                                          ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Campo obrigatório';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Data Término *'),
+                                    TextFormField(
+                                      controller: dataTerminoController,
+                                      decoration: const InputDecoration(
+                                        suffixIcon: Icon(Icons.calendar_today),
+                                      ),
+                                      readOnly: true,
+                                      onTap:
+                                          () => _selectDate(
+                                            dataTerminoController,
+                                          ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Campo obrigatório';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Horário de Término'),
+                                    TextFormField(
+                                      controller: horarioTerminoController,
+                                      decoration: const InputDecoration(
+                                        suffixIcon: Icon(Icons.access_time),
+                                      ),
+                                      readOnly: true,
+                                      onTap:
+                                          () => _selectTime(
+                                            horarioTerminoController,
+                                          ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Campo obrigatório';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('Houve registro de contaminação? *'),
+                          Row(
+                            children: [
+                              ChoiceChip(
+                                label: const Text('Sim'),
+                                selected: houveContaminacao == true,
+                                onSelected:
+                                    (selected) => setState(
+                                      () => houveContaminacao = true,
+                                    ),
+                              ),
+                              const SizedBox(width: 5),
+                              ChoiceChip(
+                                label: const Text('Não'),
+                                selected: houveContaminacao == false,
+                                onSelected:
+                                    (selected) => setState(
+                                      () => houveContaminacao = false,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          if (houveContaminacao == true)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Descreva o contaminante, onde foi encontrado e se foi retirado *',
+                                ),
+                                TextFormField(
+                                  controller: TextEditingController(
+                                    text: contaminacaoDescricao,
+                                  ),
+                                  maxLines: 3,
+                                  validator: (value) {
+                                    if (houveContaminacao == true &&
+                                        (value == null || value.isEmpty)) {
+                                      return 'Campo obrigatório';
+                                    }
+                                    return null;
+                                  },
+                                  onChanged:
+                                      (value) => contaminacaoDescricao = value,
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 16),
+                          // Material homogêneo
+                          buildChoiceChips(
+                            'Material homogêneo (mesmo material, mesma cor, mesmo tipo)?',
+                            [
+                              'Sim',
+                              'Não',
+                              'Não, mas carregado em vagões separados',
+                            ],
+                            materialHomogeneo,
+                            (value) => materialHomogeneo = value,
+                          ),
+
+                          // Umidade visível
+                          buildChoiceChips(
+                            'Umidade visível?',
+                            ['Sim', 'Não'],
+                            umidadeVisivel,
+                            (value) => umidadeVisivel = value,
+                          ),
+
+                          // Houve chuva durante a carga?
+                          buildChoiceChips(
+                            'Houve chuva durante a carga?',
+                            ['Sim', 'Não', 'Somente em partes da carga'],
+                            houveChuva,
+                            (value) => houveChuva = value,
+                          ),
+
+                          // Fornecedor acompanhou a carga e a preparação das amostras?
+                          buildChoiceChips(
+                            'Fornecedor acompanhou a carga e a preparação das amostras?',
+                            [
+                              'Sim',
+                              'Não',
+                              'Somente parte da carga',
+                              'Somente a carga',
+                              'Somente a preparação das amostras',
+                            ],
+                            fornecedorAcompanhou,
+                            (value) => fornecedorAcompanhou = value,
+                          ),
+
+                          const Text('Observações'),
+                          TextFormField(
+                            controller: observacoesController,
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 16),
+
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Imagens',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildImageGrid(),
+                          const SizedBox(height: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.picture_as_pdf),
+                                label: const Text('Finalizar e Gerar PDF'),
+                                onPressed: () async {
+                                  if (_formKey.currentState?.validate() ??
+                                      false) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Relatório enviado com sucesso!',
+                                        ),
+                                      ),
+                                    );
+                                    await onSubmitForm(); // Agora funciona
+                                    //_resetForm();
+                                    Navigator.popUntil(
+                                      context,
+                                      (route) => route.isFirst,
+                                    );
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.save),
+                                label: const Text('Salvar em Rascunho'),
+                                onPressed: saveDraft,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
