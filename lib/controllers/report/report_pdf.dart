@@ -480,9 +480,9 @@ generatePdf({
     return chunks;
   }
 
-  // --- Páginas com fotos (4 imagens por página) ---
+  // --- Páginas com fotos (6 imagens por página) ---
   if (imagesBytes.isNotEmpty) {
-    final imageChunks = chunkImages(imagesBytes, 6); // Dividir em blocos de 4
+    final imageChunks = chunkImages(imagesBytes, 6); // Dividir em blocos de 6
 
     for (var chunk in imageChunks) {
       pdf.addPage(

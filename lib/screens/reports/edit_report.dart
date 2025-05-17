@@ -2,15 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tcis_app/components/custom_loading_dialog.dart';
+
 import 'package:tcis_app/constants.dart';
-import 'package:tcis_app/controllers/report/report_pdf.dart';
-import 'package:tcis_app/model/full_report_model.dart';
 import 'package:tcis_app/utils/utils.dart';
-import 'package:exif/exif.dart';
+import 'package:tcis_app/model/full_report_model.dart';
+import 'package:tcis_app/controllers/report/report_pdf.dart';
+import 'package:tcis_app/components/custom_loading_dialog.dart';
 import 'package:tcis_app/controllers/report/report_mananger.dart';
+import 'package:tcis_app/widgets/reports/dados_relatorio_card.dart';
+import 'package:tcis_app/widgets/reports/dados_locomotiva_card.dart';
+import 'package:tcis_app/widgets/reports/dados_carregamento_card.dart';
 
 class EditReportScreen extends StatefulWidget {
   final FullReportModel report;
@@ -84,10 +86,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
     for (var path in r.imagens) {
       final file = File(path);
       if (file.existsSync()) {
-        _images.add({
-          'file': file,
-          'timestamp': file.lastModifiedSync(),
-        });
+        _images.add({'file': file, 'timestamp': file.lastModifiedSync()});
       }
     }
   }
@@ -135,8 +134,8 @@ class _EditReportScreenState extends State<EditReportScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) =>
-          const CustomLoadingDialog(message: "Gerando relatório..."),
+      builder:
+          (_) => const CustomLoadingDialog(message: "Gerando relatório..."),
     );
 
     try {
@@ -190,139 +189,44 @@ class _EditReportScreenState extends State<EditReportScreen> {
       // Salva o relatório final com o path atualizado
       final updatedFinal = updatedBase.copyWith(pathPdf: pdfPath);
       await saveOrUpdateReport(updatedFinal);
-      
+
       if (mounted) {
         Navigator.of(context).pop(); // fecha loading
         Navigator.popUntil(
-            context, (route) => route.isFirst); // volta para a home
+          context,
+          (route) => route.isFirst,
+        ); // volta para a home
       }
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop(); // fecha loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao gerar relatório: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Erro ao gerar relatório: $e")));
       }
     }
-  }
-
-  // Seletor de data
-  Future<void> _selectDate(TextEditingController controller) async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: colorPrimary,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (pickedDate != null) {
-      setState(() {
-        controller.text = formatDate(pickedDate);
-      });
-    }
-  }
-
-// Seletor de horário
-  Future<void> _selectTime(TextEditingController controller) async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      initialEntryMode: TimePickerEntryMode.inputOnly,
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: colorPrimary,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (pickedTime != null) {
-      controller.text =
-          '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
-    }
-  }
-
-// Chips reutilizáveis
-  Widget buildChoiceChips(String label, List<String> options,
-      String? selectedOption, Function(String) onSelected) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label),
-        Wrap(
-          spacing: 2.0,
-          runSpacing: 0.0,
-          children: options.map((option) {
-            return ChoiceChip(
-              label: Text(option),
-              selected: selectedOption == option,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    onSelected(option);
-                  });
-                }
-              },
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Future<DateTime?> getImageCreationDate(File file) async {
-    final bytes = await file.readAsBytes();
-    final tags = await readExifFromBytes(bytes);
-
-    if (tags.containsKey('Image DateTime')) {
-      final dateTimeString = tags['Image DateTime']!.printable;
-      // O formato padrão do EXIF é "YYYY:MM:DD HH:MM:SS"
-      final parts = dateTimeString.split(' ');
-      if (parts.length == 2) {
-        final date = parts[0].replaceAll(':', '-');
-        final time = parts[1];
-        return DateTime.tryParse('$date $time');
-      }
-    }
-    return null; // Não encontrou a data
   }
 
   // Função para selecionar várias imagens da galeria
   Future<void> _addImage() async {
-    final picker = ImagePicker();
-    final pickedFiles = await picker.pickMultiImage();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => const CustomLoadingDialog(message: "Carregando imagens..."),
+    );
 
-    if (pickedFiles.isNotEmpty) {
-      List<Map<String, dynamic>> newImages = [];
-
-      for (var pickedFile in pickedFiles) {
-        final file = File(pickedFile.path);
-        final creationDate = await getImageCreationDate(file) ??
-            DateTime.now(); // Se não achar no EXIF, usa a data atual
-        newImages.add({
-          'file': file,
-          'timestamp': creationDate,
-        });
+    try {
+      final newImages = await ImageUtils.pickImagesWithMetadata();
+      if (newImages.isNotEmpty) {
+        setState(() => _images.addAll(newImages));
       }
-
-      setState(() {
-        _images.addAll(newImages);
-      });
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao carregar imagens: $e')));
+    } finally {
+      Navigator.of(context).pop();
     }
   }
 
@@ -331,68 +235,6 @@ class _EditReportScreenState extends State<EditReportScreen> {
     setState(() {
       _images.removeAt(index);
     });
-  }
-
-// Galeria de imagens
-  Widget _buildImageGrid() {
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 8.0,
-      children: [
-        // Botão para adicionar imagem
-        GestureDetector(
-          onTap: _addImage,
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey),
-            ),
-            child: const Icon(Icons.add_a_photo, color: Colors.grey, size: 30),
-          ),
-        ),
-        // Exibir imagens adicionadas com data e hora
-
-        ..._images.asMap().entries.map((entry) {
-          int index = entry.key;
-          Map<String, dynamic> image = entry.value;
-          return Stack(
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  image: DecorationImage(
-                    image: FileImage(image['file']),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: () => setState(() => _images.removeAt(index)),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child:
-                        const Icon(Icons.close, color: Colors.white, size: 16),
-                  ),
-                ),
-              ),
-            ],
-          );
-        }),
-      ],
-    );
   }
 
   @override
@@ -416,416 +258,91 @@ class _EditReportScreenState extends State<EditReportScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dados do Relatório',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Prefixo *'),
-                        TextFormField(
-                          controller: prefixoController,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Campo obrigatório';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Terminal *'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight
-                              .withAlpha((0.9 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(15),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: selectedTerminal,
-                          onChanged: (value) =>
-                              setState(() => selectedTerminal = value),
-                          items: [
-                            'TSA - Terminal Serra Azul',
-                            'SZD - Sarzedo Velho (Itaminas)',
-                            'TCS - Terminal Sarzedo Novo',
-                            'TCM - Terminal Multitudo',
-                            'TCI - Terminal de Itutinga',
-                            'Outro',
-                          ].map((terminal) {
-                            return DropdownMenuItem(
-                              value: terminal,
-                              child: Text(terminal),
-                            );
-                          }).toList(),
-                          validator: (value) =>
-                              value == null ? 'Campo obrigatório' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Colaborador'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: colaborador,
-                          onChanged: (value) =>
-                              setState(() => colaborador = value),
-                          items: [
-                            'Colaborador 1',
-                            'Colaborador 2',
-                            'Colaborador 3'
-                          ].map((colab) {
-                            return DropdownMenuItem(
-                              value: colab,
-                              child: Text(colab),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Produto *'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: selectedProduto,
-                          onChanged: (value) =>
-                              setState(() => selectedProduto = value),
-                          items: ['Produto 1', 'Produto 2', 'Produto 3']
-                              .map((produto) {
-                            return DropdownMenuItem(
-                              value: produto,
-                              child: Text(produto),
-                            );
-                          }).toList(),
-                          validator: (value) =>
-                              value == null ? 'Campo obrigatório' : null,
-                        ),
-                      ],
-                    ),
-                  ),
+                DadosRelatorioCard(
+                  prefixoController: prefixoController,
+                  selectedTerminal: selectedTerminal,
+                  onTerminalChanged:
+                      (val) => setState(() => selectedTerminal = val),
+                  colaborador: colaborador,
+                  onColaboradorChanged:
+                      (val) => setState(() => colaborador = val),
+                  selectedProduto: selectedProduto,
+                  onProdutoChanged:
+                      (val) => setState(() => selectedProduto = val),
                 ),
                 const SizedBox(height: 16),
-                // Dados da Locomotiva
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dados da Locomotiva',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário Chegada'),
-                                  TextFormField(
-                                    controller: horarioChegadaController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.train),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioChegadaController),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário Saída'),
-                                  TextFormField(
-                                    controller: horarioSaidaController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.train),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioSaidaController),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Tipo de Vagão'),
-                        DropdownButtonFormField<String>(
-                          dropdownColor: backgroundColorLight.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                          hint: Text("Selecione uma opção",
-                              style: TextStyle(color: LabelColor)),
-                          value: selectedVagao,
-                          onChanged: (value) =>
-                              setState(() => selectedVagao = value),
-                          items: ['Vagão 1', 'Vagão 2', 'Vagão 3', 'Vagão 4']
-                              .map((vagao) {
-                            return DropdownMenuItem(
-                              value: vagao,
-                              child: Text(vagao),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
+                DadosLocomotivaCard(
+                  horarioChegadaController: horarioChegadaController,
+                  horarioSaidaController: horarioSaidaController,
+                  selectedVagao: selectedVagao,
+                  onVagaoChanged: (val) => setState(() => selectedVagao = val),
+                  onSelectTime:
+                      (controller) => selectTime(
+                        context: context,
+                        controller: horarioInicioController,
+                        primaryColor: colorPrimary,
+                      ),
                 ),
                 const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dados do Carregamento',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Data Início *'),
-                                  TextFormField(
-                                    controller: dataInicioController,
-                                    decoration: InputDecoration(
-                                      suffixIcon: Icon(Icons.calendar_today),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectDate(dataInicioController),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Campo obrigatório';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário de Início'),
-                                  TextFormField(
-                                    controller: horarioInicioController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.access_time),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioInicioController),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
+                DadosCarregamentoCard(
+                  dataInicioController: dataInicioController,
+                  horarioInicioController: horarioInicioController,
+                  dataTerminoController: dataTerminoController,
+                  horarioTerminoController: horarioTerminoController,
+                  houveContaminacao: houveContaminacao,
+                  onContaminacaoChanged:
+                      (val) => setState(() => houveContaminacao = val),
+                  contaminacaoDescricao: contaminacaoDescricao,
+                  onDescricaoChanged:
+                      (val) => setState(() => contaminacaoDescricao = val),
+                  materialHomogeneo: materialHomogeneo,
+                  onMaterialChanged:
+                      (val) => setState(() => materialHomogeneo = val),
+                  umidadeVisivel: umidadeVisivel,
+                  onUmidadeChanged:
+                      (val) => setState(() => umidadeVisivel = val),
+                  houveChuva: houveChuva,
+                  onChuvaChanged: (val) => setState(() => houveChuva = val),
+                  fornecedorAcompanhou: fornecedorAcompanhou,
+                  onFornecedorChanged:
+                      (val) => setState(() => fornecedorAcompanhou = val),
+                  observacoesController: observacoesController,
+                  images: _images,
+                  onAddImage: _addImage,
+                  onRemoveImage: _removeImage,
+                  onSelectDate:
+                      (controller) => selectDate(
+                        context: context,
+                        controller: controller,
+                        primaryColor: colorPrimary,
+                      ),
 
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Data Término *'),
-                                  TextFormField(
-                                    controller: dataTerminoController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.calendar_today),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectDate(dataTerminoController),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Campo obrigatório';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Horário de Término'),
-                                  TextFormField(
-                                    controller: horarioTerminoController,
-                                    decoration: const InputDecoration(
-                                      suffixIcon: Icon(Icons.access_time),
-                                    ),
-                                    readOnly: true,
-                                    onTap: () =>
-                                        _selectTime(horarioTerminoController),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Text('Houve registro de contaminação? *'),
-                        Row(
-                          children: [
-                            ChoiceChip(
-                              label: const Text('Sim'),
-                              selected: houveContaminacao == true,
-                              onSelected: (selected) =>
-                                  setState(() => houveContaminacao = true),
-                            ),
-                            const SizedBox(width: 5),
-                            ChoiceChip(
-                              label: const Text('Não'),
-                              selected: houveContaminacao == false,
-                              onSelected: (selected) =>
-                                  setState(() => houveContaminacao = false),
-                            ),
-                          ],
-                        ),
-                        if (houveContaminacao == true)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                  'Descreva o contaminante, onde foi encontrado e se foi retirado *'),
-                              TextFormField(
-                                controller: TextEditingController(
-                                    text: contaminacaoDescricao),
-                                maxLines: 3,
-                                validator: (value) {
-                                  if (houveContaminacao == true &&
-                                      (value == null || value.isEmpty)) {
-                                    return 'Campo obrigatório';
-                                  }
-                                  return null;
-                                },
-                                onChanged: (value) =>
-                                    contaminacaoDescricao = value,
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 16),
-                        // Material homogêneo
-                        buildChoiceChips(
-                          'Material homogêneo (mesmo material, mesma cor, mesmo tipo)?',
-                          [
-                            'Sim',
-                            'Não',
-                            'Não, mas carregado em vagões separados'
-                          ],
-                          materialHomogeneo,
-                          (value) => materialHomogeneo = value,
-                        ),
-
-                        // Umidade visível
-                        buildChoiceChips(
-                          'Umidade visível?',
-                          ['Sim', 'Não'],
-                          umidadeVisivel,
-                          (value) => umidadeVisivel = value,
-                        ),
-
-                        // Houve chuva durante a carga?
-                        buildChoiceChips(
-                          'Houve chuva durante a carga?',
-                          ['Sim', 'Não', 'Somente em partes da carga'],
-                          houveChuva,
-                          (value) => houveChuva = value,
-                        ),
-
-                        // Fornecedor acompanhou a carga e a preparação das amostras?
-                        buildChoiceChips(
-                          'Fornecedor acompanhou a carga e a preparação das amostras?',
-                          [
-                            'Sim',
-                            'Não',
-                            'Somente parte da carga',
-                            'Somente a carga',
-                            'Somente a preparação das amostras'
-                          ],
-                          fornecedorAcompanhou,
-                          (value) => fornecedorAcompanhou = value,
-                        ),
-
-                        const Text('Observações'),
-                        TextFormField(
-                          controller: observacoesController,
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 16),
-
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Imagens',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                        _buildImageGrid(),
-                        const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.picture_as_pdf),
-                              label: const Text('Gerar PDF e Criar relatório'),
-                              onPressed: () async {
-                                if (_formKey.currentState?.validate() ??
-                                    false) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Relatório enviado com sucesso!')),
-                                  );
-                                  await generateFinalReport();
-                                  (); // Agora funciona
-                                  //_resetForm();
-                                  Navigator.popUntil(
-                                      context, (route) => route.isFirst);
-                                }
-                              },
-                            ),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.save),
-                              label: const Text('Salvar em Rascunho'),
-                              onPressed: saveAsDraft,
-                            ),
-                          ],
-                        ),
-                      ],
+                  onSelectTime:
+                      (controller) => selectTime(
+                        context: context,
+                        controller: horarioInicioController,
+                        primaryColor: colorPrimary,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('Gerar PDF'),
+                        onPressed: generateFinalReport,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.save),
+                        label: const Text('Salvar Rascunho'),
+                        onPressed: saveAsDraft,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

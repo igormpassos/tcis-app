@@ -48,9 +48,7 @@ class _HomePageState extends State<HomePage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => ReportEntryScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => ReportEntryScreen()),
             ).then((_) => loadReports());
           },
         ),
@@ -75,11 +73,12 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Text(
                       "Relatórios em Andamento",
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall!
-                          .copyWith(
-                              color: Colors.black, fontWeight: FontWeight.bold),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall!.copyWith(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     IconButton(
                       icon: Icon(Icons.add),
@@ -101,12 +100,19 @@ class _HomePageState extends State<HomePage> {
                   padding: const EdgeInsets.only(left: 20, right: 20),
                   child: Row(
                     children: [
-                      ...fullReports.where((report) => report.status == 0).map(
+                      ...fullReports
+                          .where((report) => report.status == 0)
+                          .map(
                             (report) => Padding(
                               padding: const EdgeInsets.only(right: 10),
                               child: reportCard(
                                 report: report,
-                                onDeleted: () => setState(() => loadReports()),
+                                onDeleted: () async {
+                                  await loadReports();
+                                  setState(
+                                    () {},
+                                  ); // apenas para forçar o rebuild após o await
+                                },
                                 onUpdated: () => loadReports(), // novo callback
                               ),
                             ),
@@ -121,21 +127,29 @@ class _HomePageState extends State<HomePage> {
                 child: Text(
                   "Recentes",
                   style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                      color: Colors.black, fontWeight: FontWeight.bold),
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              ...fullReports.where((report) => report.status == 1).map(
+              ...fullReports
+                  .where((report) => report.status == 1)
+                  .map(
                     (report) => Padding(
                       padding: const EdgeInsets.only(
-                          left: 20, right: 20, bottom: 10),
+                        left: 20,
+                        right: 20,
+                        bottom: 10,
+                      ),
                       child: SecondaryreportCard(
                         title: report.prefixo,
                         iconSrc: "assets/icons/ios.svg",
                         colorl: colorSecondary,
-                        data: report.dataCriacao
-                            .toIso8601String()
-                            .split("T")
-                            .first,
+                        data:
+                            report.dataCriacao
+                                .toIso8601String()
+                                .split("T")
+                                .first,
                         cliente: report.colaborador,
                         produto: report.produto,
                         terminal: report.terminal,
@@ -150,12 +164,13 @@ class _HomePageState extends State<HomePage> {
                   child: Center(
                     child: Text(
                       "Nenhum relatório concluído",
-                      style:
-                          Theme.of(context).textTheme.headlineSmall!.copyWith(
-                                color: Colors.black,
-                                fontWeight: FontWeight.normal,
-                                fontSize: 16,
-                              ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall!.copyWith(
+                        color: Colors.black,
+                        fontWeight: FontWeight.normal,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
