@@ -12,7 +12,7 @@ class FullReportModel {
   final String horarioTermino;
   final String horarioChegada;
   final String horarioSaida;
-  final bool houveContaminacao;
+  final bool? houveContaminacao;
   final String contaminacaoDescricao;
   final String materialHomogeneo;
   final String umidadeVisivel;
@@ -37,7 +37,7 @@ class FullReportModel {
     required this.horarioTermino,
     required this.horarioChegada,
     required this.horarioSaida,
-    required this.houveContaminacao,
+    this.houveContaminacao,
     required this.contaminacaoDescricao,
     required this.materialHomogeneo,
     required this.umidadeVisivel,

@@ -138,7 +138,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       horarioTermino: horarioTerminoController.text,
       horarioChegada: horarioChegadaController.text,
       horarioSaida: horarioSaidaController.text,
-      houveContaminacao: houveContaminacao ?? false,
+      houveContaminacao: houveContaminacao,
       contaminacaoDescricao: contaminacaoDescricao,
       materialHomogeneo: materialHomogeneo ?? '',
       umidadeVisivel: umidadeVisivel ?? '',

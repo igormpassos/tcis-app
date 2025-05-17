@@ -9,6 +9,7 @@ class DadosRelatorioCard extends StatelessWidget {
   final ValueChanged<String?> onColaboradorChanged;
   final String? selectedProduto;
   final ValueChanged<String?> onProdutoChanged;
+  
 
   const DadosRelatorioCard({
     super.key,
