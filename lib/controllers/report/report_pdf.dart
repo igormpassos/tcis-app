@@ -48,8 +48,9 @@ generatePdf({
 }) async {
   final pdf = pw.Document();
 
-  final ByteData logoImageData =
-      await rootBundle.load('assets/images/logo-tcis-lisa-branca.png');
+  final ByteData logoImageData = await rootBundle.load(
+    'assets/images/logo-tcis-lisa-branca.png',
+  );
   final Uint8List logoImageBytes = logoImageData.buffer.asUint8List();
 
   // --- Carregar imagens como bytes ---
@@ -60,13 +61,12 @@ generatePdf({
     if (file != null && await file.exists()) {
       //final bytes = await file.readAsBytes();
       final bytes = await compressImage(file);
-      imagesBytes.add({
-        'bytes': bytes,
-        'timestamp': imageData['timestamp'],
-      });
+      imagesBytes.add({'bytes': bytes, 'timestamp': imageData['timestamp']});
       // Após carregar todas as imagens com bytes
-      imagesBytes.sort((a, b) =>
-          (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime));
+      imagesBytes.sort(
+        (a, b) =>
+            (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime),
+      );
 
       print('Image loaded: ${imageData['timestamp']}');
     } else {
@@ -100,9 +100,7 @@ generatePdf({
           ),
           pw.Text(
             prefixoController.text,
-            style: pw.TextStyle(
-              color: PdfColors.white,
-            ),
+            style: pw.TextStyle(color: PdfColors.white),
           ),
         ],
       ),
@@ -120,11 +118,17 @@ generatePdf({
       ),
       child: pw.Column(
         children: [
-          pw.Text('TCIS DO BRASIL INSPEÇÃO E CERTIFICAÇÃO LTDA',
-              style: pw.TextStyle(
-                  color: PdfColors.white, fontWeight: pw.FontWeight.bold)),
-          pw.Text('Rua Almeida de Moraes, 164 - Conj.51 Santos, SP/ Brazil',
-              style: pw.TextStyle(color: PdfColors.white, fontSize: 10)),
+          pw.Text(
+            'TCIS DO BRASIL INSPEÇÃO E CERTIFICAÇÃO LTDA',
+            style: pw.TextStyle(
+              color: PdfColors.white,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.Text(
+            'Rua Almeida de Moraes, 164 - Conj.51 Santos, SP/ Brazil',
+            style: pw.TextStyle(color: PdfColors.white, fontSize: 10),
+          ),
         ],
       ),
     );
@@ -149,8 +153,10 @@ generatePdf({
                 pw.Text(selectedTerminal ?? ''),
                 pw.Row(
                   children: [
-                    pw.Text('Inspetor:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Inspetor:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(colaborador ?? ''),
                   ],
@@ -167,9 +173,8 @@ generatePdf({
               color: PdfColor.fromHex('#F4F4F4'),
               borderRadius: pw.BorderRadius.circular(12),
             ),
-            child: pw.Wrap(
-              spacing: 5,
-              direction: pw.Axis.vertical,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Row(
                   children: [
@@ -185,21 +190,23 @@ generatePdf({
                 pw.SizedBox(height: 10),
                 pw.Row(
                   children: [
-                    pw.Text('Data:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Data:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(dataInicioController.text),
                   ],
                 ),
                 pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  mainAxisSize: pw.MainAxisSize.max,
+                  mainAxisAlignment: pw.MainAxisAlignment.start, 
                   children: [
                     pw.Row(
                       children: [
-                        pw.Text('Hora Início:',
-                            style:
-                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text(
+                          'Hora Início:',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
                         pw.SizedBox(width: 5),
                         pw.Text(horarioInicioController.text),
                       ],
@@ -207,9 +214,10 @@ generatePdf({
                     pw.SizedBox(width: 15),
                     pw.Row(
                       children: [
-                        pw.Text('Hora Término:',
-                            style:
-                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text(
+                          'Hora Término:',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
                         pw.SizedBox(width: 5),
                         pw.Text(horarioTerminoController.text),
                       ],
@@ -218,50 +226,71 @@ generatePdf({
                 ),
                 pw.Row(
                   children: [
-                    pw.Text('Produto:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Produto:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(selectedProduto ?? ''),
                   ],
                 ),
                 pw.Row(
                   children: [
-                    pw.Text('Material Homogêneo:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Material Homogêneo:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(materialHomogeneo ?? ''),
                   ],
                 ),
                 pw.Row(
                   children: [
-                    pw.Text('Houve Chuva:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Houve Chuva:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(houveChuva ?? ''),
                   ],
                 ),
                 pw.Row(
                   children: [
-                    pw.Text('Umidade Visível:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Umidade Visível:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(umidadeVisivel ?? ''),
                   ],
                 ),
+                houveContaminacao != true
+                    ? pw.Row(
+                      children: [
+                        pw.Text(
+                          'Houve Contaminação:',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                        pw.SizedBox(width: 5),
+                        pw.Text('Não'),
+                      ],
+                    )
+                    : pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'Houve Contaminação:',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                        pw.Text('Sim. $contaminacaoDescricao'),
+                      ],
+                    ),
                 pw.Row(
                   children: [
-                    pw.Text('Houve Contaminação:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.SizedBox(width: 5),
-                    pw.Text(houveContaminacao == true
-                        ? 'Sim. $contaminacaoDescricao'
-                        : 'Não'),
-                  ],
-                ),
-                pw.Row(
-                  children: [
-                    pw.Text('Houve Acompanhamento do Fornecedor:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Houve Acompanhamento do Fornecedor:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(fornecedorAcompanhou ?? ''),
                   ],
@@ -300,9 +329,10 @@ generatePdf({
                   children: [
                     pw.Row(
                       children: [
-                        pw.Text('Hora Chegada:',
-                            style:
-                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text(
+                          'Hora Chegada:',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
                         pw.SizedBox(width: 5),
                         pw.Text(horarioChegadaController.text),
                       ],
@@ -310,9 +340,10 @@ generatePdf({
                     pw.SizedBox(width: 15),
                     pw.Row(
                       children: [
-                        pw.Text('Hora Saída:',
-                            style:
-                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text(
+                          'Hora Saída:',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
                         pw.SizedBox(width: 5),
                         pw.Text(horarioSaidaController.text),
                       ],
@@ -321,8 +352,10 @@ generatePdf({
                 ),
                 pw.Row(
                   children: [
-                    pw.Text('Tipo Vagão:',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      'Tipo Vagão:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
                     pw.SizedBox(width: 5),
                     pw.Text(selectedVagao ?? ''),
                   ],
@@ -365,50 +398,53 @@ generatePdf({
     return pw.Wrap(
       spacing: 5,
       runSpacing: 5,
-      children: imagesBytes
-          .where((imageData) => imageData['bytes'] != null)
-          .map((imageData) {
-        return pw.Container(
-          width: (PdfPageFormat.a4.width - 120) / 2,
-          height: 192,
-          padding: const pw.EdgeInsets.all(0),
-          decoration: pw.BoxDecoration(
-            color: PdfColor.fromHex('#F4F4F4'),
-            //borderRadius: pw.BorderRadius.circular(12),
-          ),
-          child: pw.Stack(
-            children: [
-              pw.Center(
-                child: pw.Image(pw.MemoryImage(imageData['bytes']),
-                    fit: pw.BoxFit.fitHeight),
+      children:
+          imagesBytes.where((imageData) => imageData['bytes'] != null).map((
+            imageData,
+          ) {
+            return pw.Container(
+              width: (PdfPageFormat.a4.width - 120) / 2,
+              height: 192,
+              padding: const pw.EdgeInsets.all(0),
+              decoration: pw.BoxDecoration(
+                color: PdfColor.fromHex('#F4F4F4'),
+                //borderRadius: pw.BorderRadius.circular(12),
               ),
-              //     pw.Positioned(
-              // bottom: 0,
-              // left: 0,
-              // right: 0,
-              // child: pw.Container(
-              //   padding: const pw.EdgeInsets.all(5),
-              //   decoration: pw.BoxDecoration(
-              //     color: PdfColor.fromHex('#E0E0E0'),// Fundo cinza claro
-              //     borderRadius: pw.BorderRadius.only(
-              //       bottomLeft: pw.Radius.circular(0),
-              //       bottomRight: pw.Radius.circular(0),
-              //     ),
-              //   ),
-              //   child: pw.Text(
-              //     'Registrado em: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(imageData['timestamp'])}',
-              //     style: pw.TextStyle(
-              //       fontSize: 9,
-              //       color: PdfColors.black,
-              //     ),
-              //     textAlign: pw.TextAlign.center,
-              //   ),
-              // ),
-              //     ),
-            ],
-          ),
-        );
-      }).toList(),
+              child: pw.Stack(
+                children: [
+                  pw.Center(
+                    child: pw.Image(
+                      pw.MemoryImage(imageData['bytes']),
+                      fit: pw.BoxFit.fitHeight,
+                    ),
+                  ),
+                  //     pw.Positioned(
+                  // bottom: 0,
+                  // left: 0,
+                  // right: 0,
+                  // child: pw.Container(
+                  //   padding: const pw.EdgeInsets.all(5),
+                  //   decoration: pw.BoxDecoration(
+                  //     color: PdfColor.fromHex('#E0E0E0'),// Fundo cinza claro
+                  //     borderRadius: pw.BorderRadius.only(
+                  //       bottomLeft: pw.Radius.circular(0),
+                  //       bottomRight: pw.Radius.circular(0),
+                  //     ),
+                  //   ),
+                  //   child: pw.Text(
+                  //     'Registrado em: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(imageData['timestamp'])}',
+                  //     style: pw.TextStyle(
+                  //       fontSize: 9,
+                  //       color: PdfColors.black,
+                  //     ),
+                  //     textAlign: pw.TextAlign.center,
+                  //   ),
+                  // ),
+                  //     ),
+                ],
+              ),
+            );
+          }).toList(),
     );
   }
 
@@ -418,16 +454,80 @@ generatePdf({
       pageFormat: PdfPageFormat.a4,
       header: (pw.Context context) => buildHeader(),
       footer: (pw.Context context) => buildFooter(),
-      build: (pw.Context context) => [
-        pw.SizedBox(height: 10),
-        buildContent(),
-        pw.SizedBox(height: 10),
-      ],
+      build:
+          (pw.Context context) => [
+            pw.SizedBox(height: 10),
+            buildContent(),
+            pw.SizedBox(height: 10),
+          ],
     ),
   );
 
-  // --- Página 2 - Relatório fotográfico ---
+  // Função para gerar blocos de 4 imagens por página
+  List<List<Map<String, dynamic>>> chunkImages(
+    List<Map<String, dynamic>> list,
+    int chunkSize,
+  ) {
+    List<List<Map<String, dynamic>>> chunks = [];
+    for (var i = 0; i < list.length; i += chunkSize) {
+      chunks.add(
+        list.sublist(
+          i,
+          i + chunkSize > list.length ? list.length : i + chunkSize,
+        ),
+      );
+    }
+    return chunks;
+  }
+
+  // --- Páginas com fotos (4 imagens por página) ---
   if (imagesBytes.isNotEmpty) {
+    final imageChunks = chunkImages(imagesBytes, 6); // Dividir em blocos de 4
+
+    for (var chunk in imageChunks) {
+      pdf.addPage(
+        pw.MultiPage(
+          header: (pw.Context context) => buildHeader(),
+          footer: (pw.Context context) => buildFooter(),
+          pageFormat: PdfPageFormat.a4,
+          build:
+              (pw.Context context) => [
+                pw.SizedBox(height: 15),
+                pw.Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
+                  children:
+                      chunk.map((imageData) {
+                        return pw.Container(
+                          width: (PdfPageFormat.a4.width - 120) / 2,
+                          height: 192,
+                          padding: const pw.EdgeInsets.all(0),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColor.fromHex('#F4F4F4'),
+                            //borderRadius: pw.BorderRadius.circular(8),
+                          ),
+                          child: pw.Stack(
+                            children: [
+                              pw.Center(
+                                child: pw.Image(
+                                  pw.MemoryImage(imageData['bytes']),
+                                  fit: pw.BoxFit.fitHeight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                ),
+                pw.SizedBox(height: 15),
+              ],
+        ),
+      );
+    }
+  }
+
+  // --- Página 2 - Relatório fotográfico ---
+  /*  if (imagesBytes.isNotEmpty) {
     pdf.addPage(
       pw.MultiPage(
         header: (pw.Context context) => buildHeader(),
@@ -440,7 +540,7 @@ generatePdf({
         ],
       ),
     );
-  }
+  }*/
 
   // --- Salvar e abrir PDF ---
   // final Directory tempDir = await getTemporaryDirectory();
@@ -465,7 +565,7 @@ generatePdf({
 
   final reportData = FullReportModel(
     id: uuid.v4(),
-    status: 1, // status 1 para "Concluido" 
+    status: 1, // status 1 para "Concluido"
     prefixo: prefixoController.text,
     terminal: selectedTerminal ?? '',
     produto: selectedProduto ?? '',
@@ -489,7 +589,7 @@ generatePdf({
     dataCriacao: DateTime.now(),
   );
 
-// Salva no SharedPreferences
+  // Salva no SharedPreferences
   final savedReports = prefs.getStringList('full_reports') ?? [];
   savedReports.add(jsonEncode(reportData.toJson()));
   await prefs.setStringList('full_reports', savedReports);

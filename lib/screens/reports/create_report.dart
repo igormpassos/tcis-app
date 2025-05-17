@@ -902,18 +902,19 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                                 onPressed: () async {
                                   if (_formKey.currentState?.validate() ??
                                       false) {
+                                    
+                                    await onSubmitForm(); // Agora funciona
+                                    //_resetForm();
+                                    Navigator.popUntil(
+                                      context,
+                                      (route) => route.isFirst,
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
                                           'Relatório enviado com sucesso!',
                                         ),
                                       ),
-                                    );
-                                    await onSubmitForm(); // Agora funciona
-                                    //_resetForm();
-                                    Navigator.popUntil(
-                                      context,
-                                      (route) => route.isFirst,
                                     );
                                   }
                                 },
