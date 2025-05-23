@@ -64,13 +64,15 @@ class SecondaryreportCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: status == "Em Revisão"
+                    color: status == "0"
                         ? Colors.orangeAccent
                         : Colors.lightGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    status,
+                    status == "0"
+                        ? "Em Andamento"
+                        : "Finalizado",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,

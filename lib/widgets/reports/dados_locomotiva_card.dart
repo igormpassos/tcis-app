@@ -75,6 +75,7 @@ class DadosLocomotivaCard extends StatelessWidget {
                 ),
               ],
             ),
+            /*
             const SizedBox(height: 16),
             const Text('Tipo de Vagão'),
             DropdownButtonFormField<String>(
@@ -95,6 +96,7 @@ class DadosLocomotivaCard extends StatelessWidget {
               validator: (value) =>
                   value == null ? 'Campo obrigatório' : null,
             ),
+            */
           ],
         ),
       ),

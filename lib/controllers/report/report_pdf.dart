@@ -361,6 +361,7 @@ generatePdf({
                     ),
                   ],
                 ),
+                /*
                 pw.Row(
                   children: [
                     pw.Text(
@@ -370,7 +371,7 @@ generatePdf({
                     pw.SizedBox(width: 5),
                     pw.Text(selectedVagao ?? ''),
                   ],
-                ),
+                ),*/
               ],
             ),
           ),
