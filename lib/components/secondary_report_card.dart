@@ -95,10 +95,10 @@ class SecondaryreportCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundImage: NetworkImage(iconSrc),
-            radius: 20,
-          ),
+          // CircleAvatar(
+          //   backgroundImage: NetworkImage(iconSrc),
+          //   radius: 20,
+          // ),
         ],
       ),
     );

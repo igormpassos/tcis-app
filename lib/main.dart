@@ -7,7 +7,6 @@ import 'package:tcis_app/screens/login/login.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 //import 'package:tcis_app/screens/login/login.dart';
-
 void main() {
   runApp(const MyApp());
 }

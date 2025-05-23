@@ -61,6 +61,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   String? selectedProduto;
   String? selectedVagao;
   String? colaborador;
+  String? fornecedor;
   String? selectedValue;
   final TextEditingController dataInicioController = TextEditingController();
   final TextEditingController horarioChegadaController =
@@ -95,6 +96,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
           selectedProduto: selectedProduto,
           selectedVagao: selectedVagao,
           colaborador: colaborador,
+          fornecedor: fornecedor,
           selectedValue: selectedValue,
           dataInicioController: dataInicioController,
           horarioChegadaController: horarioChegadaController,
@@ -131,6 +133,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       terminal: selectedTerminal ?? '',
       produto: selectedProduto ?? '',
       colaborador: colaborador ?? '',
+      fornecedor: fornecedor ?? '',
       tipoVagao: selectedValue ?? '',
       dataInicio: dataInicioController.text,
       horarioInicio: horarioInicioController.text,
@@ -189,13 +192,16 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                     prefixoController: prefixoController,
                     selectedTerminal: selectedTerminal,
                     onTerminalChanged:
-                        (value) => setState(() => selectedTerminal = value),
+                        (val) => setState(() => selectedTerminal = val),
                     colaborador: colaborador,
                     onColaboradorChanged:
-                        (value) => setState(() => colaborador = value),
+                        (val) => setState(() => colaborador = val),
                     selectedProduto: selectedProduto,
                     onProdutoChanged:
-                        (value) => setState(() => selectedProduto = value),
+                        (val) => setState(() => selectedProduto = val),
+                    fornecedor: fornecedor,
+                    onFornecedorChanged:
+                        (val) => setState(() => fornecedor = val),
                   ),
 
                   const SizedBox(height: 16),
@@ -208,7 +214,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                     onSelectTime:
                         (controller) => selectTime(
                           context: context,
-                          controller: horarioInicioController,
+                          controller: controller,
                           primaryColor: colorPrimary,
                         ),
                   ),
@@ -250,7 +256,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                     onSelectTime:
                         (controller) => selectTime(
                           context: context,
-                          controller: horarioInicioController,
+                          controller: controller,
                           primaryColor: colorPrimary,
                         ),
                   ),

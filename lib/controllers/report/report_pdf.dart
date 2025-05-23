@@ -30,6 +30,7 @@ generatePdf({
   required String? selectedProduto,
   required String? selectedVagao,
   required String? colaborador,
+  required String? fornecedor,
   required String? selectedValue,
   required TextEditingController dataInicioController,
   required TextEditingController horarioChegadaController,
@@ -222,6 +223,16 @@ generatePdf({
                         pw.Text(horarioTerminoController.text),
                       ],
                     ),
+                  ],
+                ),
+                pw.Row(
+                  children: [
+                    pw.Text(
+                      'Fornecedor:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    pw.SizedBox(width: 5),
+                    pw.Text(fornecedor ?? ''),
                   ],
                 ),
                 pw.Row(
@@ -570,6 +581,7 @@ generatePdf({
     terminal: selectedTerminal ?? '',
     produto: selectedProduto ?? '',
     colaborador: colaborador ?? '',
+    fornecedor: fornecedor ?? '',
     tipoVagao: selectedValue ?? '',
     dataInicio: dataInicioController.text,
     horarioInicio: horarioInicioController.text,

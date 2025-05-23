@@ -5,6 +5,7 @@ class FullReportModel {
   final String terminal;
   final String produto;
   final String colaborador;
+  final String? fornecedor;
   final String? tipoVagao;
   final String dataInicio;
   final String horarioInicio;
@@ -30,6 +31,7 @@ class FullReportModel {
     required this.terminal,
     required this.produto,
     required this.colaborador,
+    this.fornecedor,
     this.tipoVagao,
     required this.dataInicio,
     required this.horarioInicio,
@@ -57,6 +59,7 @@ class FullReportModel {
       'terminal': terminal,
       'produto': produto,
       'colaborador': colaborador,
+      'fornecedor': fornecedor,
       'tipoVagao': tipoVagao,
       'dataInicio': dataInicio,
       'horarioInicio': horarioInicio,
@@ -85,6 +88,7 @@ class FullReportModel {
       terminal: json['terminal'],
       produto: json['produto'],
       colaborador: json['colaborador'],
+      fornecedor: json['fornecedor'],
       tipoVagao: json['tipoVagao'],
       dataInicio: json['dataInicio'],
       horarioInicio: json['horarioInicio'],
@@ -112,6 +116,7 @@ class FullReportModel {
     String? terminal,
     String? produto,
     String? colaborador,
+    String? fornecedor,
     String? tipoVagao,
     String? dataInicio,
     String? horarioInicio,
@@ -137,6 +142,7 @@ class FullReportModel {
       terminal: terminal ?? this.terminal,
       produto: produto ?? this.produto,
       colaborador: colaborador ?? this.colaborador,
+      fornecedor: fornecedor ?? this.fornecedor,
       tipoVagao: tipoVagao ?? this.tipoVagao,
       dataInicio: dataInicio ?? this.dataInicio,
       horarioInicio: horarioInicio ?? this.horarioInicio,

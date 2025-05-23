@@ -42,6 +42,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
   String? selectedProduto;
   String? selectedVagao;
   String? colaborador;
+  String? fornecedor;
   String? selectedValue;
   bool? houveContaminacao;
   String contaminacaoDescricao = '';
@@ -66,6 +67,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
     selectedTerminal = r.terminal;
     selectedProduto = r.produto;
     colaborador = r.colaborador;
+    fornecedor = r.fornecedor;
     selectedValue = r.tipoVagao;
     dataInicioController.text = r.dataInicio;
     horarioInicioController.text = r.horarioInicio;
@@ -98,6 +100,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
       terminal: selectedTerminal ?? '',
       produto: selectedProduto ?? '',
       colaborador: colaborador ?? '',
+      fornecedor: fornecedor ?? '',
       tipoVagao: selectedValue ?? '',
       dataInicio: dataInicioController.text,
       horarioInicio: horarioInicioController.text,
@@ -144,6 +147,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
         terminal: selectedTerminal ?? '',
         produto: selectedProduto ?? '',
         colaborador: colaborador ?? '',
+        fornecedor: fornecedor ?? '',
         tipoVagao: selectedValue ?? '',
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
@@ -169,6 +173,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
         selectedProduto: selectedProduto,
         selectedVagao: selectedVagao,
         colaborador: colaborador,
+        fornecedor: fornecedor,
         selectedValue: selectedValue,
         dataInicioController: dataInicioController,
         horarioChegadaController: horarioChegadaController,
@@ -269,6 +274,9 @@ class _EditReportScreenState extends State<EditReportScreen> {
                   selectedProduto: selectedProduto,
                   onProdutoChanged:
                       (val) => setState(() => selectedProduto = val),
+                  fornecedor: fornecedor,
+                  onFornecedorChanged:
+                      (val) => setState(() => fornecedor = val),
                 ),
                 const SizedBox(height: 16),
                 DadosLocomotivaCard(
