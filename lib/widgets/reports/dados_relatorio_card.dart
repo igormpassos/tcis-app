@@ -55,6 +55,7 @@ class DadosRelatorioCard extends StatelessWidget {
       'FSEC (EKO)',
       'FSE2 (EKO)',
       'GRANULADO (EKO)',
+      'GRANULADO (LHG)',
       'FMFM (FERRO+)',
       'FFJM (J.MENDES)',
       'FFJM/FMFM (J.MENDES)',
@@ -69,6 +70,7 @@ class DadosRelatorioCard extends StatelessWidget {
       'GRANULADO (LHG)',
       'GRANULADO/SINTER (LHG)',
       'FMBE (BEMISA)',
+      'FNMT (MINERITA)',
       'Outro',
     ];
 
