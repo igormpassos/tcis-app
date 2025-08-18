@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,9 +11,15 @@ import 'package:tcis_app/utils/utils.dart';
 import 'package:tcis_app/model/full_report_model.dart';
 import 'package:tcis_app/controllers/report/report_pdf.dart';
 import 'package:tcis_app/components/custom_loading_dialog.dart';
-import 'package:tcis_app/widgets/reports/dados_relatorio_card.dart';
+import 'package:tcis_app/widgets/reports/dados_relatorio_card_api.dart';
 import 'package:tcis_app/widgets/reports/dados_locomotiva_card.dart';
 import 'package:tcis_app/widgets/reports/dados_carregamento_card.dart';
+import '../../controllers/data_controller.dart';
+import '../../controllers/auth_controller.dart';
+import '../../services/connectivity_service.dart';
+import '../../services/report_api_service.dart';
+import '../../services/api_service.dart';
+import '../../utils/datetime_utils.dart';
 
 class ReportEntryScreen extends StatefulWidget {
   const ReportEntryScreen({super.key});
@@ -24,6 +32,35 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   final _formKey = GlobalKey<FormState>();
   final List<Map<String, dynamic>> _images =
       []; // Lista para armazenar as imagens e metadados
+
+  // Estado de conectividade
+  bool _hasInternetConnection = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Carregar dados da API quando a tela inicializar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DataController>().loadAllData();
+      _checkConnectivity();
+      
+      // Se não é admin, define o colaborador como o usuário logado
+      final authController = context.read<AuthController>();
+      if (authController.currentUser?.role != 'ADMIN') {
+        setState(() {
+          colaborador = authController.currentUser?.name ?? authController.currentUser?.username;
+        });
+      }
+    });
+  }
+
+  /// Verifica conectividade com a internet
+  Future<void> _checkConnectivity() async {
+    final hasConnection = await ConnectivityService.hasInternetConnection();
+    setState(() {
+      _hasInternetConnection = hasConnection;
+    });
+  }
 
   // Função para selecionar várias imagens da galeria
   Future<void> _addImage() async {
@@ -123,6 +160,169 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     }
   }
 
+  /// Envia relatório para o servidor
+  Future<void> submitToServer() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, preencha todos os campos obrigatórios'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validar datas/horários
+    final dateTimeValidation = DateTimeUtils.getValidationError(
+      startDateStr: dataInicioController.text,
+      startTimeStr: horarioInicioController.text,
+      endDateStr: dataTerminoController.text,
+      endTimeStr: horarioTerminoController.text,
+    );
+
+    if (dateTimeValidation.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(dateTimeValidation),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!_hasInternetConnection) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sem conexão com a internet. Salvando como rascunho.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      await saveDraft();
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const CustomLoadingDialog(message: "Enviando relatório..."),
+    );
+
+    try {
+      // Preparar arquivos de imagem
+      final imageFiles = <File>[];
+      for (var imageData in _images) {
+        final file = imageData['file'] as File?;
+        if (file != null && await file.exists()) {
+          imageFiles.add(file);
+        }
+      }
+
+      // Criar modelo do relatório
+      final uuid = const Uuid();
+      final reportData = FullReportModel(
+        id: uuid.v4(),
+        prefixo: prefixoController.text,
+        terminal: selectedTerminal ?? '',
+        produto: selectedProduto ?? '',
+        colaborador: colaborador ?? '',
+        fornecedor: fornecedor ?? '',
+        tipoVagao: selectedValue ?? '',
+        dataInicio: dataInicioController.text,
+        horarioInicio: horarioInicioController.text,
+        dataTermino: dataTerminoController.text,
+        horarioTermino: horarioTerminoController.text,
+        horarioChegada: horarioChegadaController.text,
+        horarioSaida: horarioSaidaController.text,
+        houveContaminacao: houveContaminacao,
+        contaminacaoDescricao: contaminacaoDescricao,
+        materialHomogeneo: materialHomogeneo ?? '',
+        umidadeVisivel: umidadeVisivel ?? '',
+        houveChuva: houveChuva ?? '',
+        fornecedorAcompanhou: fornecedorAcompanhou ?? '',
+        observacoes: observacoesController.text,
+        imagens: _images.map((img) => img['file'].path.toString()).toList(),
+        pathPdf: '',
+        dataCriacao: DateTime.now(),
+        status: 1, // Finalizado
+      );
+
+      final dataController = context.read<DataController>();
+
+      // Enviar para servidor usando o novo fluxo
+      final result = await ReportApiService.submitReport(
+        report: reportData,
+        dataController: dataController,
+        imageFiles: imageFiles,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(); // fecha loading
+
+        if (result['success'] == true) {
+          // Sucesso: mostrar mensagem e abrir PDF
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Relatório enviado com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Abrir PDF usando a URL do servidor
+          final pdfUrl = result['data']['pdf_url'];
+          if (pdfUrl != null && pdfUrl.isNotEmpty) {
+            await _openServerPdf(pdfUrl);
+          }
+
+          // Voltar para tela principal indicando que houve mudança
+          Navigator.popUntil(context, (route) => route.isFirst);
+          
+        } else {
+          // Erro: mostrar mensagem
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Erro ao enviar relatório: ${result['message']}"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // fecha loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erro ao enviar relatório: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Abrir PDF do servidor
+  Future<void> _openServerPdf(String pdfUrl) async {
+    try {
+      // Construir URL completa
+      final baseUrl = ApiService.apiBaseUrl.replaceAll('/api', '');
+      final fullUrl = '$baseUrl/$pdfUrl';
+      
+      print('Abrindo PDF: $fullUrl');
+      
+      // TODO: Implementar abertura do PDF usando a URL
+      // Pode usar url_launcher ou um viewer interno
+
+      
+    } catch (e) {
+      print('Erro ao abrir PDF: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao abrir PDF: $e'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
   Future<void> saveDraft() async {
     final uuid = const Uuid();
     final prefs = await SharedPreferences.getInstance();
@@ -151,7 +351,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       imagens: _images.map((img) => img['file'].path.toString()).toList(),
       pathPdf: '', // ainda não foi gerado
       dataCriacao: DateTime.now(),
-      status: 0, // Rascunho
+      status: 0, // Rascunho (local apenas)
     );
 
     final savedReports = prefs.getStringList('full_reports') ?? [];
@@ -162,6 +362,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text('Rascunho salvo com sucesso.')));
 
+    // Voltar para tela principal indicando que houve mudança
     Navigator.popUntil(context, (route) => route.isFirst);
   }
 
@@ -188,7 +389,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DadosRelatorioCard(
+                  DadosRelatorioCardApi(
                     prefixoController: prefixoController,
                     selectedTerminal: selectedTerminal,
                     onTerminalChanged:
@@ -263,34 +464,66 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
 
                   const SizedBox(height: 16),
 
-                  Column(
-                    children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text('Finalizar e Gerar PDF'),
-                        onPressed: () async {
-                          if (_formKey.currentState?.validate() ?? false) {
-                            await onSubmitForm();
-                            Navigator.popUntil(
-                              context,
-                              (route) => route.isFirst,
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Relatório enviado com sucesso!'),
-                              ),
-                            );
-                          }
-                        },
+                  // Botões condicionais baseados na conectividade
+                  if (_hasInternetConnection) ...[
+                    // Com conexão: duas opções
+                    Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.send),
+                            label: const Text('Enviar relatório'),
+                            onPressed: submitToServer,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.save),
+                            label: const Text('Salvar como Rascunho'),
+                            onPressed: saveDraft,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Sem conexão: apenas rascunho
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        border: Border.all(color: Colors.orange),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(height: 5),
-                      ElevatedButton.icon(
+                      child: Row(
+                        children: [
+                          Icon(Icons.wifi_off, color: Colors.orange.shade700),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Sem conexão - Apenas rascunho disponível',
+                              style: TextStyle(
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
                         icon: const Icon(Icons.save),
-                        label: const Text('Salvar em Rascunho'),
+                        label: const Text('Salvar como Rascunho'),
                         onPressed: saveDraft,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
               ),
             ),

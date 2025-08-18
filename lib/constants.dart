@@ -11,3 +11,6 @@ const Color TextLightColor = Color(0xFFFFFFFF);
 const Color TextDarkColor = Color(0xFF000000);
 const Color AcentColor = Color(0xFF84B702);
 const Color LabelColor = Color(0xFFc5c4c4);
+
+// API Base URL
+const String API_BASE_URL = 'http://192.168.1.224:3000';

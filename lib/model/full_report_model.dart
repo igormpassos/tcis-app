@@ -1,4 +1,6 @@
 
+import 'package:intl/intl.dart';
+
 class FullReportModel {
   final String id;
   final String prefixo;
@@ -23,7 +25,7 @@ class FullReportModel {
   final List<String> imagens; // caminhos locais, se quiser salvar
   final String pathPdf;
   final DateTime dataCriacao;
-  final int status; // novo campo
+  final int status; // 0: rascunho (local), 1: finalizado, 2: revisão, 3: enviado
 
   FullReportModel({
     required this.id,
@@ -49,7 +51,7 @@ class FullReportModel {
     required this.imagens,
     required this.pathPdf,
     required this.dataCriacao,
-    required this.status, // novo campo
+    required this.status, // 0: rascunho (local), 1: finalizado, 2: revisão, 3: enviado
   });
 
   Map<String, dynamic> toJson() {
@@ -107,6 +109,55 @@ class FullReportModel {
       pathPdf: json['pathPdf'],
       dataCriacao: DateTime.parse(json['dataCriacao']),
       status: json['status'] ?? 0, // ou qualquer valor padrão como -1
+    );
+  }
+
+    // Factory para criar a partir de dados do servidor
+  factory FullReportModel.fromServerData(Map<String, dynamic> serverData) {
+    // Converter datas do servidor (vêm em UTC, precisa converter para horário local)
+    DateTime? startDateTime = serverData['startDateTime'] != null 
+        ? DateTime.parse(serverData['startDateTime']).toLocal()
+        : DateTime.now();
+    DateTime? endDateTime = serverData['endDateTime'] != null 
+        ? DateTime.parse(serverData['endDateTime']).toLocal()
+        : DateTime.now();
+    DateTime? arrivalDateTime = serverData['arrivalDateTime'] != null 
+        ? DateTime.parse(serverData['arrivalDateTime']).toLocal()
+        : DateTime.now();
+    DateTime? departureDateTime = serverData['departureDateTime'] != null 
+        ? DateTime.parse(serverData['departureDateTime']).toLocal()
+        : DateTime.now();
+    DateTime createdAt = serverData['createdAt'] != null 
+        ? DateTime.parse(serverData['createdAt']).toLocal()
+        : DateTime.now();
+
+    return FullReportModel(
+      id: serverData['id'] ?? '',
+      prefixo: serverData['prefix'] ?? '',
+      terminal: serverData['terminal'] != null 
+          ? '${serverData['terminal']['code']} - ${serverData['terminal']['name']}'
+          : '',
+      produto: serverData['product']?['name'] ?? '',
+      colaborador: serverData['user']?['name'] ?? '',
+      fornecedor: serverData['supplier']?['name'],
+      tipoVagao: serverData['wagonType'] ?? '',
+      dataInicio: DateFormat('dd/MM/yyyy').format(startDateTime),
+      horarioInicio: startDateTime.toIso8601String().split('T').last.substring(0, 5),
+      dataTermino: DateFormat('dd/MM/yyyy').format(endDateTime),
+      horarioTermino: endDateTime.toIso8601String().split('T').last.substring(0, 5),
+      horarioChegada: arrivalDateTime.toIso8601String().split('T').last.substring(0, 5),
+      horarioSaida: departureDateTime.toIso8601String().split('T').last.substring(0, 5),
+      houveContaminacao: serverData['hasContamination'],
+      contaminacaoDescricao: serverData['contaminationDescription'] ?? '',
+      materialHomogeneo: serverData['homogeneousMaterial'] ?? '',
+      umidadeVisivel: serverData['visibleMoisture'] ?? '',
+      houveChuva: serverData['rainOccurred'] ?? '',
+      fornecedorAcompanhou: serverData['supplierAccompanied'] ?? '',
+      observacoes: serverData['observations'] ?? '',
+      imagens: List<String>.from(serverData['imageUrls'] ?? []),
+      pathPdf: serverData['pdfUrl'] ?? '',
+      dataCriacao: createdAt,
+      status: serverData['status'] ?? 1,
     );
   }
 

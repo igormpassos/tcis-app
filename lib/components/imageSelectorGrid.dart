@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tcis_app/components/image_display_widget.dart';
 
 class ImageGrid extends StatelessWidget {
   final List<Map<String, dynamic>> images;
@@ -34,6 +35,9 @@ class ImageGrid extends StatelessWidget {
         ...images.asMap().entries.map((entry) {
           final index = entry.key;
           final image = entry.value;
+          final file = image['file'];
+          final url = image['url'];
+          
           return Stack(
             children: [
               Container(
@@ -42,10 +46,14 @@ class ImageGrid extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  image: DecorationImage(
-                    image: FileImage(image['file']),
-                    fit: BoxFit.cover,
-                  ),
+                  color: Colors.grey[300],
+                  border: Border.all(color: Colors.grey[400]!),
+                ),
+                child: ImageDisplayWidget(
+                  imageFile: file,
+                  imageUrl: url,
+                  width: 100,
+                  height: 100,
                 ),
               ),
               Positioned(

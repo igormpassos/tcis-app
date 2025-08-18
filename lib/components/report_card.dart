@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
 import 'package:tcis_app/components/delete_modal.dart';
 import 'package:tcis_app/model/full_report_model.dart';
 import 'package:tcis_app/screens/reports/edit_report.dart';
+import 'package:intl/intl.dart';
 
 class reportCard extends StatelessWidget {
   final FullReportModel report;
@@ -19,7 +19,7 @@ class reportCard extends StatelessWidget {
   // getters simplificados
   String get id => report.id;
   String get title => report.prefixo;
-  String get data => report.dataCriacao.toIso8601String().split("T").first;
+  String get data => DateFormat('dd/MM/yyyy').format(report.dataCriacao);
   String get cliente => report.colaborador;
   String get produto => report.produto;
   String get terminal => report.terminal;
@@ -119,13 +119,16 @@ class reportCard extends StatelessWidget {
             },
             onSelected: (value) async {
               if (value == 'editar') {
-                await Navigator.push(
+                final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => EditReportScreen(report: report),
                   ),
                 );
-                onUpdated(); // callback para atualizar Home
+                // Só atualizar se houve mudança
+                if (result == true) {
+                  onUpdated(); // callback para atualizar Home
+                }
               } else if (value == 'deletar') {
                 showDeleteConfirmationDialog(context, id, onDeleted);
               }

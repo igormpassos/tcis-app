@@ -14,17 +14,32 @@ import 'package:tcis_app/model/full_report_model.dart'; // certifique-se que ess
 
 // Reduzir resolução e qualidade da imagem
 Future<Uint8List> compressImage(File imageFile) async {
-  final imageBytes = await imageFile.readAsBytes();
-  final originalImage = img.decodeImage(imageBytes);
+  try {
+    final imageBytes = await imageFile.readAsBytes();
+    final originalImage = img.decodeImage(imageBytes);
 
-  if (originalImage == null) return imageBytes;
+    if (originalImage == null) {
+      print('Não foi possível decodificar a imagem: ${imageFile.path}');
+      return imageBytes;
+    }
 
-  final resized = img.copyResize(originalImage, width: 800); // Redimensionar
-  final compressed = img.encodeJpg(resized, quality: 60); // Comprimir
-  return Uint8List.fromList(compressed);
+    final resized = img.copyResize(originalImage, width: 800); // Redimensionar
+    final compressed = img.encodeJpg(resized, quality: 60); // Comprimir
+
+    return Uint8List.fromList(compressed);
+  } catch (e) {
+    print('Erro ao comprimir imagem ${imageFile.path}: $e');
+    // Retorna os bytes originais se houver erro
+    try {
+      return await imageFile.readAsBytes();
+    } catch (e2) {
+      print('Erro ao ler arquivo de imagem: $e2');
+      return Uint8List(0);
+    }
+  }
 }
 
-generatePdf({
+Future<String> generatePdf({
   required TextEditingController prefixoController,
   required String? selectedTerminal,
   required String? selectedProduto,
@@ -48,6 +63,17 @@ generatePdf({
   required List<Map<String, dynamic>> images,
 }) async {
   final pdf = pw.Document();
+
+  // Carregar fonte personalizada que suporta Unicode
+  final ByteData fontData = await rootBundle.load(
+    'assets/Fonts/Inter-Regular.ttf',
+  );
+  final pw.Font font = pw.Font.ttf(fontData);
+
+  final ByteData fontBoldData = await rootBundle.load(
+    'assets/Fonts/Inter-SemiBold.ttf',
+  );
+  final pw.Font fontBold = pw.Font.ttf(fontBoldData);
 
   final ByteData logoImageData = await rootBundle.load(
     'assets/images/logo-tcis-lisa-branca.png',
@@ -190,38 +216,70 @@ generatePdf({
                 ),
                 pw.SizedBox(height: 10),
                 pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.start,
                   children: [
-                    pw.Text(
-                      'Data:',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Row(
+                            children: [
+                              pw.Text(
+                                'Data Início:',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.SizedBox(width: 5),
+                              pw.Text(dataInicioController.text),
+                            ],
+                          ),
+                          pw.Row(
+                            children: [
+                              pw.Text(
+                                'Data Término:',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.SizedBox(width: 5),
+                              pw.Text(dataTerminoController.text),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    pw.SizedBox(width: 5),
-                    pw.Text(dataInicioController.text),
-                  ],
-                ),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.start, 
-                  children: [
-                    pw.Row(
-                      children: [
-                        pw.Text(
-                          'Hora Início:',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                        ),
-                        pw.SizedBox(width: 5),
-                        pw.Text(horarioInicioController.text),
-                      ],
-                    ),
-                    pw.SizedBox(width: 15),
-                    pw.Row(
-                      children: [
-                        pw.Text(
-                          'Hora Término:',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                        ),
-                        pw.SizedBox(width: 5),
-                        pw.Text(horarioTerminoController.text),
-                      ],
+                    pw.SizedBox(width: 20),
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Row(
+                            children: [
+                              pw.Text(
+                                'Hora Início:',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.SizedBox(width: 5),
+                              pw.Text(horarioInicioController.text),
+                            ],
+                          ),
+                          pw.Row(
+                            children: [
+                              pw.Text(
+                                'Hora Término:',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.SizedBox(width: 5),
+                              pw.Text(horarioTerminoController.text),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -570,7 +628,7 @@ generatePdf({
   final File file = File(filePath);
   file.writeAsBytesSync(await pdf.save());
 
-  await OpenFile.open(filePath);
+  //await OpenFile.open(filePath);
 
   final uuid = const Uuid();
   final prefs = await SharedPreferences.getInstance();
@@ -606,4 +664,7 @@ generatePdf({
   final savedReports = prefs.getStringList('full_reports') ?? [];
   savedReports.add(jsonEncode(reportData.toJson()));
   await prefs.setStringList('full_reports', savedReports);
+
+  // Retornar o caminho do arquivo PDF gerado
+  return filePath;
 }

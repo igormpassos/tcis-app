@@ -6,12 +6,25 @@ Future<void> saveOrUpdateReport(FullReportModel report) async {
   final prefs = await SharedPreferences.getInstance();
   final existing = prefs.getStringList('full_reports') ?? [];
 
-  // Remove qualquer com o mesmo ID
-  final updated = existing.where((e) {
-    final decoded = jsonDecode(e);
-    return decoded['id'] != report.id;
-  }).toList();
+  // Encontrar índice do relatório existente com o mesmo ID
+  int existingIndex = -1;
+  for (int i = 0; i < existing.length; i++) {
+    final decoded = jsonDecode(existing[i]);
+    if (decoded['id'] == report.id) {
+      existingIndex = i;
+      break;
+    }
+  }
 
-  updated.add(jsonEncode(report.toJson()));
-  await prefs.setStringList('full_reports', updated);
+  if (existingIndex >= 0) {
+    // Atualizar relatório existente
+    existing[existingIndex] = jsonEncode(report.toJson());
+    print('Relatório ${report.id} atualizado no armazenamento local');
+  } else {
+    // Adicionar novo relatório
+    existing.add(jsonEncode(report.toJson()));
+    print('Novo relatório ${report.id} adicionado ao armazenamento local');
+  }
+
+  await prefs.setStringList('full_reports', existing);
 }

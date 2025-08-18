@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tcis_app/constants.dart';
 
 class DadosLocomotivaCard extends StatelessWidget {
   final TextEditingController horarioChegadaController;
