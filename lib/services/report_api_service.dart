@@ -355,20 +355,17 @@ class ReportApiService {
           folderName: folderName,
           reportPrefix: report.prefixo,
         );
-      } else {
-        // SEMPRE gerar novo PDF para refletir mudanças nos dados
-        // Seja por novas imagens ou mudanças no texto/dados
-        print('Gerando novo PDF com dados atualizados...');
-        final newPdfPath = await _generatePdfWithServerImages(report, imagePaths);
-        final generatedPdfFile = File(newPdfPath);
+      } else if (imagePaths.isNotEmpty) {
+        // Gerar PDF temporário se há imagens (será regenerado após a atualização)
+        print('Gerando PDF temporário para atualização...');
+        final tempPdfPath = await _generatePdfWithServerImages(report, imagePaths);
+        final generatedPdfFile = File(tempPdfPath);
         
         pdfPath = await ImageUploadService.uploadPdf(
           pdfFile: generatedPdfFile,
           folderName: folderName,
           reportPrefix: report.prefixo,
         );
-        
-        print('✅ Novo PDF gerado e uploaded: $pdfPath');
       }
 
       // Preparar dados para atualização
@@ -387,7 +384,7 @@ class ReportApiService {
       }
 
       // Garantir que o novo PDF URL seja enviado
-      if (pdfPath.isNotEmpty) {
+      if (pdfPath != null && pdfPath.isNotEmpty) {
         reportData['pdf_url'] = pdfPath;
         print('📄 Atualizando PDF URL: $pdfPath');
       }
@@ -398,9 +395,40 @@ class ReportApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
+          final updatedReport = data['data'];
+          final newPrefix = updatedReport['prefix'] ?? report.prefixo;
+          
+          // SEMPRE regenerar PDF após qualquer atualização se há imagens ou PDF
+          if (pdfFile != null || imagePaths.isNotEmpty) {
+            print('🔄 Regenerando PDF após atualização do relatório...');
+            
+            // Criar uma cópia do report com dados atualizados (incluindo novo prefixo se houver)
+            final reportWithUpdatedData = FullReportModel.fromJson({
+              ...report.toJson(),
+              'prefixo': newPrefix,
+            });
+            
+            // Gerar novo PDF com os dados atualizados
+            final newPdfPath = await _generatePdfWithServerImages(reportWithUpdatedData, imagePaths);
+            final generatedPdfFile = File(newPdfPath);
+            
+            final finalPdfPath = await ImageUploadService.uploadPdf(
+              pdfFile: generatedPdfFile,
+              folderName: folderName,
+              reportPrefix: newPrefix,
+            );
+            
+            // Atualizar o PDF URL no backend
+            await _apiService.put('/reports/$reportId', {'pdf_url': finalPdfPath});
+            print('✅ PDF regenerado após atualização: $finalPdfPath');
+            
+            // Atualizar dados de retorno com o novo PDF
+            updatedReport['pdfUrl'] = finalPdfPath;
+          }
+          
           return {
             'success': true,
-            'data': data['data'],
+            'data': updatedReport,
             'folderName': folderName,
           };
         } else {

@@ -9,6 +9,7 @@ import 'package:tcis_app/screens/test_api_screen.dart';
 import 'package:tcis_app/screens/test_image.dart';
 import 'package:tcis_app/controllers/auth_controller.dart';
 import 'package:tcis_app/controllers/data_controller.dart';
+import 'package:tcis_app/components/custom_loading_widget.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
@@ -81,17 +82,8 @@ class _AppInitializerState extends State<AppInitializer> {
     return Consumer<AuthController>(
       builder: (context, authController, child) {
         if (authController.isLoading) {
-          return const Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Inicializando aplicação...'),
-                ],
-              ),
-            ),
+          return const CustomLoadingWidget(
+            message: 'Inicializando aplicação...',
           );
         }
 

@@ -3,11 +3,11 @@ import 'package:tcis_app/constants.dart';
 import '../../model/full_report_model.dart';
 import '../../components/report_card.dart';
 import '../../components/secondary_report_card.dart';
+import '../../components/custom_loading_widget.dart';
 import 'package:tcis_app/screens/reports/create_report.dart';
 import 'package:tcis_app/screens/reports/edit_report.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/report_api_service.dart';
-import '../test_api_screen.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -396,7 +396,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.all(20.0),
-                    child: CircularProgressIndicator(),
+                    child: CompactLoadingWidget(
+                      message: 'Carregando relatórios...',
+                      size: 60.0,
+                    ),
                   ),
                 )
               else if (serverReports.isEmpty)

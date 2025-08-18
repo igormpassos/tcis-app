@@ -67,8 +67,12 @@ const createReportValidation = [
   body('prefix')
     .optional()
     .trim()
-    .isLength({ min: 1, max: 50 })
-    .withMessage('Prefixo deve ter entre 1 e 50 caracteres'),
+    .custom((value) => {
+      // Permite string vazia (será gerada automaticamente) ou string entre 1-50 caracteres
+      if (value === '' || value === undefined || value === null) return true;
+      return value.length >= 1 && value.length <= 50;
+    })
+    .withMessage('Prefixo deve estar vazio (para geração automática) ou ter entre 1 e 50 caracteres'),
   body('terminalId')
     .optional({ nullable: true })
     .custom((value) => {
@@ -90,6 +94,13 @@ const createReportValidation = [
       return Number.isInteger(value) && value > 0;
     })
     .withMessage('ID do fornecedor deve ser um número inteiro positivo ou null'),
+  body('clientId')
+    .optional({ nullable: true })
+    .custom((value) => {
+      if (value === null || value === undefined) return true;
+      return Number.isInteger(value) && value > 0;
+    })
+    .withMessage('ID do cliente deve ser um número inteiro positivo ou null'),
   body('startDateTime')
     .notEmpty()
     .withMessage('Data/hora de início é obrigatória')
@@ -596,6 +607,7 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
       terminalId,
       productId,
       supplierId,
+      clientId,
       startDateTime,
       endDateTime,
       arrivalDateTime,
@@ -615,10 +627,55 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
       imageUrls
     } = req.body;
 
-    if (prefix !== undefined) updateData.prefix = prefix;
+    // Verificar se devemos regenerar o prefixo automaticamente
+    const terminalChanged = terminalId !== undefined && terminalId !== existingReport.terminalId;
+    const clientChanged = clientId !== undefined && clientId !== existingReport.clientId;
+    const endDateChanged = endDateTime !== undefined && 
+      new Date(endDateTime).toDateString() !== new Date(existingReport.endDateTime).toDateString();
+    
+    // Verificar se o prefixo foi alterado manualmente pelo usuário
+    const prefixManuallyChanged = prefix !== undefined && prefix !== existingReport.prefix;
+    
+    // Regenerar automaticamente se:
+    // 1. Terminal, cliente ou data mudaram E
+    // 2. O prefixo não foi alterado manualmente pelo usuário
+    const shouldRegeneratePrefix = (terminalChanged || clientChanged || endDateChanged) && !prefixManuallyChanged;
+    
+    console.log('🔍 Debug regeneração:', {
+      terminalChanged,
+      clientChanged,
+      endDateChanged,
+      prefixManuallyChanged,
+      shouldRegeneratePrefix,
+      currentPrefix: existingReport.prefix,
+      receivedPrefix: prefix,
+      terminalId,
+      existingTerminalId: existingReport.terminalId,
+      existingEndDate: existingReport.endDateTime,
+      newEndDate: endDateTime
+    });
+    
+    let finalPrefix = prefix;
+    if (shouldRegeneratePrefix) {
+      const finalTerminalId = terminalId !== undefined ? terminalId : existingReport.terminalId;
+      const finalClientId = clientId !== undefined ? clientId : existingReport.clientId;
+      const finalEndDateTime = endDateTime !== undefined ? endDateTime : existingReport.endDateTime;
+      
+      try {
+        finalPrefix = await generateReportPrefix(finalTerminalId, finalClientId, finalEndDateTime);
+        console.log(`🔄 Prefixo regenerado automaticamente: ${finalPrefix} (Terminal: ${terminalChanged}, Cliente: ${clientChanged}, Data: ${endDateChanged})`);
+      } catch (error) {
+        console.error('Erro ao regenerar prefixo na edição:', error);
+        // Continua com o prefix original se houver erro
+        finalPrefix = prefix;
+      }
+    } else if (prefixManuallyChanged) {
+      console.log(`✏️ Prefixo alterado manualmente pelo usuário: ${prefix}`);
+    }    if (finalPrefix !== undefined) updateData.prefix = finalPrefix;
     if (terminalId !== undefined) updateData.terminalId = terminalId;
     if (productId !== undefined) updateData.productId = productId;
     if (supplierId !== undefined) updateData.supplierId = supplierId;
+    if (clientId !== undefined) updateData.clientId = clientId;
     if (startDateTime !== undefined) updateData.startDateTime = new Date(startDateTime);
     if (endDateTime !== undefined) updateData.endDateTime = new Date(endDateTime);
     if (arrivalDateTime !== undefined) updateData.arrivalDateTime = arrivalDateTime ? new Date(arrivalDateTime) : null;
