@@ -135,4 +135,22 @@ class DataService {
     }
   }
 
+  // ===== CLIENTES =====
+  Future<List<Client>> getClients() async {
+    try {
+      final response = await _apiService.get('/clients');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          return (data['data'] as List)
+              .map((client) => Client.fromJson(client))
+              .toList();
+        }
+      }
+      throw Exception('Erro ao buscar clientes');
+    } catch (e) {
+      throw Exception('Erro ao buscar clientes: $e');
+    }
+  }
 }

@@ -8,7 +8,7 @@ class FullReportModel {
   final String produto;
   final String colaborador;
   final String? fornecedor;
-  final String? tipoVagao;
+  final String? cliente;
   final String dataInicio;
   final String horarioInicio;
   final String dataTermino;
@@ -34,7 +34,7 @@ class FullReportModel {
     required this.produto,
     required this.colaborador,
     this.fornecedor,
-    this.tipoVagao,
+    this.cliente,
     required this.dataInicio,
     required this.horarioInicio,
     required this.dataTermino,
@@ -62,7 +62,7 @@ class FullReportModel {
       'produto': produto,
       'colaborador': colaborador,
       'fornecedor': fornecedor,
-      'tipoVagao': tipoVagao,
+      'cliente': cliente,
       'dataInicio': dataInicio,
       'horarioInicio': horarioInicio,
       'dataTermino': dataTermino,
@@ -91,7 +91,7 @@ class FullReportModel {
       produto: json['produto'],
       colaborador: json['colaborador'],
       fornecedor: json['fornecedor'],
-      tipoVagao: json['tipoVagao'],
+      cliente: json['cliente'],
       dataInicio: json['dataInicio'],
       horarioInicio: json['horarioInicio'],
       dataTermino: json['dataTermino'],
@@ -140,7 +140,6 @@ class FullReportModel {
       produto: serverData['product']?['name'] ?? '',
       colaborador: serverData['user']?['name'] ?? '',
       fornecedor: serverData['supplier']?['name'],
-      tipoVagao: serverData['wagonType'] ?? '',
       dataInicio: DateFormat('dd/MM/yyyy').format(startDateTime),
       horarioInicio: startDateTime.toIso8601String().split('T').last.substring(0, 5),
       dataTermino: DateFormat('dd/MM/yyyy').format(endDateTime),
@@ -168,7 +167,7 @@ class FullReportModel {
     String? produto,
     String? colaborador,
     String? fornecedor,
-    String? tipoVagao,
+    String? cliente,
     String? dataInicio,
     String? horarioInicio,
     String? dataTermino,
@@ -194,7 +193,7 @@ class FullReportModel {
       produto: produto ?? this.produto,
       colaborador: colaborador ?? this.colaborador,
       fornecedor: fornecedor ?? this.fornecedor,
-      tipoVagao: tipoVagao ?? this.tipoVagao,
+      cliente: cliente ?? this.cliente,
       dataInicio: dataInicio ?? this.dataInicio,
       horarioInicio: horarioInicio ?? this.horarioInicio,
       dataTermino: dataTermino ?? this.dataTermino,

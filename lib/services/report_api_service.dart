@@ -16,7 +16,7 @@ class ReportApiService {
   static Map<String, dynamic> _mapReportToApi(
     FullReportModel report, 
     DataController dataController,
-    {List<String>? imagePaths, String? pdfPath}
+    {List<String>? imagePaths}
   ) {
     // Buscar IDs baseados nos nomes (considerar formato "código - nome")
     final terminal = dataController.terminals
@@ -27,6 +27,16 @@ class ReportApiService {
         .firstOrNull;
     final supplier = dataController.suppliers
         .where((s) => s.name == report.fornecedor)
+        .firstOrNull;
+
+    // Buscar ID do colaborador pelo nome
+    final employee = dataController.users
+        .where((u) => (u.name ?? u.username) == report.colaborador)
+        .firstOrNull;
+
+    // Buscar ID do cliente pelo nome
+    final client = dataController.clients
+        .where((c) => c.name == report.cliente)
         .firstOrNull;
     
     // Converter campos de data/hora separados para DateTime unificado
@@ -52,14 +62,15 @@ class ReportApiService {
       'terminalId': terminal?.id,
       'productId': product?.id,
       'supplierId': supplier?.id,
-      // userId vem do token de autenticação no backend
+      'clientId': client?.id,
+      // Enviar userId do colaborador selecionado (se diferente do logado)
+      'employeeUserId': employee?.id,
       // Campos unificados de data/hora
       'startDateTime': DateTimeUtils.toIsoString(startDateTime),
       'endDateTime': DateTimeUtils.toIsoString(endDateTime),
       'arrivalDateTime': DateTimeUtils.toIsoString(arrivalDateTime),
       'departureDateTime': DateTimeUtils.toIsoString(departureDateTime),
       'status': report.status,
-      'wagonType': report.tipoVagao,
       'hasContamination': report.houveContaminacao,
       'contaminationDescription': report.contaminacaoDescricao,
       'homogeneousMaterial': report.materialHomogeneo,
@@ -67,7 +78,6 @@ class ReportApiService {
       'rainOccurred': report.houveChuva,
       'supplierAccompanied': report.fornecedorAcompanhou,
       'observations': report.observacoes,
-      'pdfPath': pdfPath,
       'imagePaths': imagePaths ?? [],
     };
 
@@ -78,7 +88,8 @@ class ReportApiService {
     print('terminal: ${report.terminal} → ID: ${terminal?.id}');
     print('produto: ${report.produto} → ID: ${product?.id}');
     print('fornecedor: ${report.fornecedor} → ID: ${supplier?.id}');
-    print('colaborador: ${report.colaborador} (será obtido do usuário logado)');
+    print('cliente: ${report.cliente} → ID: ${client?.id}');
+    print('colaborador: ${report.colaborador} → ID: ${employee?.id}');
     print('dataInicio: ${report.dataInicio}');
     print('horarioInicio: ${report.horarioInicio}');
     print('dataTermino: ${report.dataTermino}');
@@ -269,10 +280,10 @@ class ReportApiService {
       prefixoController: TextEditingController(text: report.prefixo),
       selectedTerminal: report.terminal,
       selectedProduto: report.produto,
-      selectedVagao: report.tipoVagao,
+      selectedVagao: null, // Campo removido
       colaborador: report.colaborador,
       fornecedor: report.fornecedor,
-      selectedValue: report.tipoVagao,
+      selectedValue: null, // Campo removido
       dataInicioController: TextEditingController(text: report.dataInicio),
       horarioChegadaController: TextEditingController(text: report.horarioChegada),
       horarioInicioController: TextEditingController(text: report.horarioInicio),
@@ -365,7 +376,6 @@ class ReportApiService {
         report, 
         dataController,
         imagePaths: imagePaths.isNotEmpty ? imagePaths : null,
-        pdfPath: pdfPath,
       );
 
       // Remover campos nulos para não sobrescrever dados existentes

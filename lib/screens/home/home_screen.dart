@@ -10,8 +10,13 @@ import '../../services/report_api_service.dart';
 import '../test_api_screen.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../controllers/auth_controller.dart';
+import '../profile/user_profile_screen.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -184,6 +189,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
+  String _getInitials(String name) {
+    final words = name.trim().split(' ');
+    if (words.length >= 2) {
+      return '${words[0][0]}${words[1][0]}'.toUpperCase();
+    } else {
+      return words[0].length >= 2 
+          ? words[0].substring(0, 2).toUpperCase()
+          : words[0][0].toUpperCase();
+    }
+  }
+
   Widget _BuildBlankReport(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -222,7 +238,84 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              const SizedBox(height: 40),
+                const SizedBox(height: 40),
+                
+                // Header com perfil do usuário
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Consumer<AuthController>(
+                    builder: (context, authController, child) {
+                      final user = authController.currentUser;
+                      return Row(
+                        children: [
+                          // Avatar do usuário
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const UserProfileScreen(),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: colorSecondary,
+                                  width: 2,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 25,
+                                backgroundColor: colorSecondary,
+                                child: Text(
+                                  _getInitials(user?.name ?? user?.username ?? 'U'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(width: 12),
+                          
+                          // Saudação
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Olá,',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  user?.name ?? user?.username ?? 'Usuário',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 30),
+                
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -332,7 +425,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       usuario: report['user']?['name'] ?? 'N/A',
                       fornecedor: report['supplier']?['name'] ?? 'N/A',
                       produto: report['product']?['name'] ?? 'N/A',
-                      terminal: report['terminal']?['name'] ?? 'N/A',
+                      terminal: report['terminal']?['code'] ?? 'N/A',
                       pathPdf: report['pdfUrl'] != null && (report['pdfUrl'] as String).isNotEmpty
                           ? (report['pdfUrl'] as String).startsWith('http')
                               ? report['pdfUrl'] // Já é URL completa
@@ -350,17 +443,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const TestApiScreen()),
-          );
-        },
-        icon: const Icon(Icons.api),
-        label: const Text('Teste API'),
-        backgroundColor: colorPrimary,
-      ),
+      // floatingActionButton: FloatingActionButton.extended(
+      //   onPressed: () {
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (context) => const TestApiScreen()),
+      //     );
+      //   },
+      //   icon: const Icon(Icons.api),
+      //   label: const Text('Teste API'),
+      //   backgroundColor: colorPrimary,
+      // ),
     );
   }
 }

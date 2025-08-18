@@ -161,3 +161,43 @@ class Product {
     };
   }
 }
+
+class Client {
+  final int id;
+  final String name;
+  final String? contact;
+  final List<String> emails;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  Client({
+    required this.id,
+    required this.name,
+    this.contact,
+    required this.emails,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory Client.fromJson(Map<String, dynamic> json) {
+    return Client(
+      id: json['id'],
+      name: json['name'],
+      contact: json['contact'],
+      emails: List<String>.from(json['emails'] ?? []),
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'contact': contact,
+      'emails': emails,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+}

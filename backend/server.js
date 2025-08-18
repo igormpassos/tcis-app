@@ -13,6 +13,7 @@ const terminalRoutes = require('./routes/terminals');
 const productRoutes = require('./routes/products');
 const supplierRoutes = require('./routes/suppliers');
 const employeeRoutes = require('./routes/employees');
+const clientRoutes = require('./routes/clients');
 const uploadRoutes = require('./routes/uploads');
 
 // Importar middlewares
@@ -76,6 +77,7 @@ app.use('/api/terminals', authenticateToken, terminalRoutes);
 app.use('/api/products', authenticateToken, productRoutes);
 app.use('/api/suppliers', authenticateToken, supplierRoutes);
 app.use('/api/employees', authenticateToken, employeeRoutes);
+app.use('/api/clients', authenticateToken, clientRoutes);
 app.use('/api/uploads', authenticateToken, uploadRoutes);
 
 // Rota 404

@@ -36,32 +36,7 @@ class MyApp extends StatelessWidget {
         supportedLocales: const [
           Locale('pt', 'BR'),
         ],
-        home: Consumer<AuthController>(
-          builder: (context, authController, child) {
-            // Se está carregando, mostra splash
-            if (authController.isLoading) {
-              return const Scaffold(
-                body: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Inicializando aplicação...'),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // Se está autenticado, vai para home, senão para login
-            if (authController.isAuthenticated) {
-              return HomePage();
-            } else {
-              return Login();
-            }
-          },
-        ),
+        home: const AppInitializer(),
         routes: {
           '/login': (context) => Login(),
           '/home': (context) => HomePage(),

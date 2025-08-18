@@ -10,22 +10,26 @@ class DataController extends ChangeNotifier {
   List<Product> _products = [];
   List<Supplier> _suppliers = [];
   List<User> _users = [];
+  List<Client> _clients = [];
 
   bool _isLoadingTerminals = false;
   bool _isLoadingProducts = false;
   bool _isLoadingSuppliers = false;
-  bool _isLoadingUsers = false;  String? _errorMessage;
+  bool _isLoadingUsers = false;
+  bool _isLoadingClients = false;  String? _errorMessage;
 
   // Getters
   List<Terminal> get terminals => _terminals;
   List<Product> get products => _products;
   List<Supplier> get suppliers => _suppliers;
   List<User> get users => _users;
+  List<Client> get clients => _clients;
 
   bool get isLoadingTerminals => _isLoadingTerminals;
   bool get isLoadingProducts => _isLoadingProducts;
   bool get isLoadingSuppliers => _isLoadingSuppliers;
-  bool get isLoadingUsers => _isLoadingUsers;  String? get errorMessage => _errorMessage;
+  bool get isLoadingUsers => _isLoadingUsers;
+  bool get isLoadingClients => _isLoadingClients;  String? get errorMessage => _errorMessage;
 
   // Carregar todos os dados
   Future<void> loadAllData() async {
@@ -34,6 +38,7 @@ class DataController extends ChangeNotifier {
       loadProducts(),
       loadSuppliers(),
       loadUsers(),
+      loadClients(),
     ]);
   }
 
@@ -153,6 +158,28 @@ class DataController extends ChangeNotifier {
   Future<void> refreshSuppliers() => loadSuppliers();
   Future<void> refreshProducts() => loadProducts();
   Future<void> refreshUsers() => loadUsers();
+
+  // ===== CLIENTES =====
+  Future<void> loadClients() async {
+    _isLoadingClients = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final loadedClients = await _dataService.getClients();
+      _clients = loadedClients;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Erro ao carregar clientes: $e';
+      _clients = [];
+    } finally {
+      _isLoadingClients = false;
+      notifyListeners();
+    }
+  }
+
+  // Método para atualizar clientes
+  Future<void> refreshClients() => loadClients();
 
   // Obter categorias únicas de produtos
   List<String> get productCategories {

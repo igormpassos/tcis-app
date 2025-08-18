@@ -88,7 +88,7 @@ class SecondaryreportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$fornecedor • $produto • $terminal',
+                  '$terminal • $fornecedor • $produto',
                   style: const TextStyle(
                     color: Colors.white60,
                     fontSize: 14,
@@ -97,7 +97,7 @@ class SecondaryreportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$usuario',
+                  usuario,
                   style: const TextStyle(
                     color: Colors.white60,
                     fontSize: 14,

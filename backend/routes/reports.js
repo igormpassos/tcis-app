@@ -6,11 +6,66 @@ const validate = require('../middleware/validation');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Função para gerar prefixo automático do relatório
+async function generateReportPrefix(terminalId, clientId, endDateTime) {
+  try {
+    // 1. Buscar o terminal para obter o prefixo
+    const terminal = await prisma.terminal.findUnique({
+      where: { id: terminalId },
+      select: { prefix: true, name: true }
+    });
+
+    if (!terminal) {
+      throw new Error('Terminal não encontrado');
+    }
+
+    if (!terminal.prefix) {
+      throw new Error(`Prefixo não configurado para o terminal ${terminal.name}`);
+    }
+
+    const basePrefix = terminal.prefix;
+
+    // 2. Obter a data de término e calcular os dígitos finais
+    const endDate = new Date(endDateTime);
+    const day = endDate.getDate();
+    const dayDouble = (day * 2).toString().padStart(2, '0'); // Garante 2 dígitos
+
+    // 3. Calcular o sequencial do dia para o cliente no mesmo terminal
+    const startOfDay = new Date(endDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Contar relatórios do cliente no mesmo terminal no mesmo dia
+    const dailyReportsCount = await prisma.report.count({
+      where: {
+        clientId: clientId,
+        terminalId: terminalId,
+        endDateTime: {
+          gte: startOfDay,
+          lte: endOfDay
+        }
+      }
+    });
+
+    const dailySequential = dailyReportsCount + 1; // Próximo número sequencial
+
+    // 4. Montar o prefixo final: AAA-XYZ (onde Z é sequencial + dígitos do dia)
+    const prefix = `${basePrefix}${dailySequential}${dayDouble}`;
+    
+    console.log(`🔖 Prefixo gerado: ${prefix} (Terminal: ${terminal.name}, Cliente: ${clientId}, Dia: ${day}, Sequencial no terminal: ${dailySequential})`);
+    
+    return prefix;
+  } catch (error) {
+    console.error('Erro ao gerar prefixo:', error);
+    throw error;
+  }
+}
+
 // Validações
 const createReportValidation = [
   body('prefix')
-    .notEmpty()
-    .withMessage('Prefixo é obrigatório')
+    .optional()
     .trim()
     .isLength({ min: 1, max: 50 })
     .withMessage('Prefixo deve ter entre 1 e 50 caracteres'),
@@ -335,6 +390,7 @@ router.post('/', createReportValidation, validate, async (req, res) => {
       terminalId,
       productId,
       supplierId,
+      clientId,
       startDateTime,
       endDateTime,
       arrivalDateTime,
@@ -399,13 +455,35 @@ router.post('/', createReportValidation, validate, async (req, res) => {
     }
     console.log('===============================');
 
+    // Gerar prefixo se não fornecido
+    let finalPrefix = prefix;
+    if (!finalPrefix && terminalId && clientId) {
+      console.log('=== GERANDO PREFIXO AUTOMÁTICO ===');
+      try {
+        finalPrefix = await generateReportPrefix(terminalId, clientId, endDateTime);
+        console.log('Prefixo gerado automaticamente:', finalPrefix);
+      } catch (prefixError) {
+        console.error('Erro ao gerar prefixo:', prefixError);
+        return res.status(400).json({
+          success: false,
+          message: `Erro ao gerar prefixo: ${prefixError.message}`
+        });
+      }
+    } else if (!finalPrefix) {
+      return res.status(400).json({
+        success: false,
+        message: 'Prefixo é obrigatório quando não fornecidos terminalId e clientId para geração automática'
+      });
+    }
+
     // Criar relatório
     console.log('=== CRIANDO RELATÓRIO NO BANCO ===');
     console.log('Dados para inserção:', {
-      prefix,
+      prefix: finalPrefix,
       terminalId,
       productId,
       supplierId,
+      clientId,
       userId: req.user.id,
       startDateTime: new Date(startDateTime),
       endDateTime: new Date(endDateTime),
@@ -415,11 +493,13 @@ router.post('/', createReportValidation, validate, async (req, res) => {
     
     const report = await prisma.report.create({
       data: {
-        prefix,
+        prefix: finalPrefix,
         terminalId,
         productId,
         supplierId,
+        clientId,
         userId: req.user.id,
+        createdBy: req.user.id,
         startDateTime: new Date(startDateTime),
         endDateTime: new Date(endDateTime),
         arrivalDateTime: arrivalDateTime ? new Date(arrivalDateTime) : null,

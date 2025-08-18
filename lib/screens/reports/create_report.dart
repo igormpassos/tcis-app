@@ -49,6 +49,13 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       if (authController.currentUser?.role != 'ADMIN') {
         setState(() {
           colaborador = authController.currentUser?.name ?? authController.currentUser?.username;
+          // Para não-admins, sempre define CSN como cliente padrão
+          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
+        });
+      } else {
+        // Para admins também define CSN como padrão
+        setState(() {
+          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
         });
       }
     });
@@ -99,6 +106,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   String? selectedVagao;
   String? colaborador;
   String? fornecedor;
+  String? selectedCliente;
   String? selectedValue;
   final TextEditingController dataInicioController = TextEditingController();
   final TextEditingController horarioChegadaController =
@@ -226,7 +234,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         produto: selectedProduto ?? '',
         colaborador: colaborador ?? '',
         fornecedor: fornecedor ?? '',
-        tipoVagao: selectedValue ?? '',
+        cliente: selectedCliente ?? '',
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
         dataTermino: dataTerminoController.text,
@@ -334,7 +342,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       produto: selectedProduto ?? '',
       colaborador: colaborador ?? '',
       fornecedor: fornecedor ?? '',
-      tipoVagao: selectedValue ?? '',
+      cliente: selectedCliente ?? '',
       dataInicio: dataInicioController.text,
       horarioInicio: horarioInicioController.text,
       dataTermino: dataTerminoController.text,
@@ -403,6 +411,9 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                     fornecedor: fornecedor,
                     onFornecedorChanged:
                         (val) => setState(() => fornecedor = val),
+                    selectedCliente: selectedCliente,
+                    onClienteChanged:
+                        (val) => setState(() => selectedCliente = val),
                   ),
 
                   const SizedBox(height: 16),

@@ -15,6 +15,9 @@ class DadosRelatorioCardApi extends StatefulWidget {
   final ValueChanged<String?> onProdutoChanged;
   final String? fornecedor;
   final ValueChanged<String?> onFornecedorChanged;
+  final String? selectedCliente;
+  final ValueChanged<String?> onClienteChanged;
+  final bool isEditMode;
 
   const DadosRelatorioCardApi({
     super.key,
@@ -27,6 +30,9 @@ class DadosRelatorioCardApi extends StatefulWidget {
     required this.onProdutoChanged,
     required this.fornecedor,
     required this.onFornecedorChanged,
+    required this.selectedCliente,
+    required this.onClienteChanged,
+    this.isEditMode = false,
   });
 
   @override
@@ -53,12 +59,22 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
         if (widget.colaborador?.isEmpty ?? true) {
           widget.onColaboradorChanged(userName);
         }
+        
+        // Para não-admins, sempre define CSN como cliente padrão se não houver um selecionado
+        if (widget.selectedCliente?.isEmpty ?? true) {
+          widget.onClienteChanged('CSN - Companhia Siderúrgica Nacional');
+        }
       } else {
         // Se é admin e não há colaborador selecionado, seleciona o usuário logado por padrão
         // Mas só se não houver um colaborador já definido (modo criação)
         if (widget.colaborador == null || widget.colaborador!.isEmpty) {
           final userName = authController.currentUser?.name ?? authController.currentUser?.username;
           widget.onColaboradorChanged(userName);
+        }
+        
+        // Para admins, também define CSN como padrão se não houver cliente selecionado
+        if (widget.selectedCliente?.isEmpty ?? true) {
+          widget.onClienteChanged('CSN - Companhia Siderúrgica Nacional');
         }
       }
     });
@@ -75,15 +91,38 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
             const Text('Dados do Relatório', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 16),
 
-            const Text('Prefixo *'),
-            TextFormField(
-              controller: widget.prefixoController,
-              decoration: const InputDecoration(hintText: 'ABC-1234'),
-              textCapitalization: TextCapitalization.characters,
-              validator: (value) => value == null || value.isEmpty ? 'Campo obrigatório' : null,
+            // Prefixo - comportamento baseado no modo e role do usuário
+            Consumer<AuthController>(
+              builder: (context, authController, child) {
+                final isAdmin = authController.currentUser?.role == 'ADMIN';
+                
+                // Em modo criação: oculta completamente para não-admins
+                if (!widget.isEditMode && !isAdmin) {
+                  return const SizedBox.shrink();
+                }
+                
+                // Em modo edição: mostra desabilitado para não-admins
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Prefixo'),
+                    TextFormField(
+                      controller: widget.prefixoController,
+                      enabled: isAdmin, // Só admins podem editar
+                      decoration: InputDecoration(
+                        hintText: widget.isEditMode 
+                            ? (isAdmin ? 'Prefixo do relatório' : 'Somente administradores podem alterar')
+                            : 'Deixe vazio para gerar automaticamente',
+                        filled: !isAdmin,
+                        fillColor: !isAdmin ? Colors.grey.shade100 : null,
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                );
+              },
             ),
-
-            const SizedBox(height: 16),
             
             // Terminal Selector com design original
             const Text('Terminal *'),
@@ -101,7 +140,7 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
                 }
 
                 final terminais = dataController.terminals.map((t) => '${t.code} - ${t.name}').toList();
-                terminais.add('Outro');
+                //terminais.add('Outro');
 
                 // Encontrar o terminal correspondente pelo nome
                 String? selectedValue;
@@ -163,7 +202,7 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(15),
                       color: Colors.grey.shade50,
                     ),
                     child: Text(
@@ -188,7 +227,7 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(15),
                           color: Colors.grey.shade50,
                         ),
                         child: Text(
@@ -231,6 +270,76 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
 
             const SizedBox(height: 16),
             
+            // Cliente Selector - desabilitado para não-admins
+            const Text('Cliente *'),
+            Consumer<AuthController>(
+              builder: (context, authController, child) {
+                final isAdmin = authController.currentUser?.role == 'ADMIN';
+                
+                return Consumer<DataController>(
+                  builder: (context, dataController, child) {
+                    if (dataController.isLoadingClients) {
+                      return DropdownButtonFormField<String>(
+                        decoration: InputDecoration(
+                          hintText: "Carregando clientes...",
+                          hintStyle: TextStyle(color: LabelColor),
+                        ),
+                        items: const [],
+                        onChanged: null,
+                      );
+                    }
+
+                    final clientes = dataController.clients.map((c) => c.name).toList();
+
+                    // Para não-admins, mostra apenas a CSN selecionada como texto não editável
+                    if (!isAdmin) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(15),
+                          color: Colors.grey.shade50,
+                        ),
+                        child: Text(
+                          widget.selectedCliente ?? 'CSN - Companhia Siderúrgica Nacional',
+                          style: TextStyle(fontSize: 15, color: TextDarkColor),
+                        ),
+                      );
+                    }
+
+                    return DropdownButtonFormField<String>(
+                      value: clientes.contains(widget.selectedCliente) ? widget.selectedCliente : null,
+                      hint: Text("Selecione uma opção", style: TextStyle(color: LabelColor)),
+                      style: TextStyle(fontSize: 15, color: TextDarkColor),
+                      borderRadius: BorderRadius.circular(15),
+                      dropdownColor: backgroundColorLight.withAlpha(230),
+                      onChanged: (value) {
+                        if (value == 'Outro') {
+                          _showCustomDialog(
+                            context,
+                            title: 'Qual o Cliente?',
+                            onSubmit: (custom) => widget.onClienteChanged(custom),
+                          );
+                        } else {
+                          widget.onClienteChanged(value);
+                        }
+                      },
+                      items: clientes.map((cliente) {
+                        return DropdownMenuItem<String>(
+                          value: cliente,
+                          child: Text(cliente),
+                        );
+                      }).toList(),
+                      validator: (value) => (widget.selectedCliente?.isEmpty ?? true) ? 'Campo obrigatório' : null,
+                    );
+                  },
+                );
+              },
+            ),
+
+            const SizedBox(height: 16),
+            
             // Fornecedor Selector com design original
             const Text('Fornecedor *'),
             Consumer<DataController>(
@@ -247,7 +356,7 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
                 }
 
                 final fornecedores = dataController.suppliers.map((s) => s.name).toList();
-                fornecedores.add('Outro');
+                //fornecedores.add('Outro');
 
                 return DropdownButtonFormField<String>(
                   value: fornecedores.contains(widget.fornecedor) ? widget.fornecedor : null,
@@ -312,7 +421,7 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
                 }
 
                 final produtos = availableProducts.map((p) => p.name).toList();
-                produtos.add('Outro');
+                //produtos.add('Outro');
 
                 return DropdownButtonFormField<String>(
                   value: produtos.contains(widget.selectedProduto) ? widget.selectedProduto : null,

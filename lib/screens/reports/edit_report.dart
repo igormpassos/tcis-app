@@ -51,6 +51,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
   String? selectedVagao;
   String? colaborador;
   String? fornecedor;
+  String? selectedCliente;
   String? selectedValue;
   bool? houveContaminacao;
   String contaminacaoDescricao = '';
@@ -68,6 +69,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
     if (selectedValue?.isEmpty ?? false) selectedValue = null;
     if (selectedVagao?.isEmpty ?? false) selectedVagao = null;
     if (colaborador?.isEmpty ?? false) colaborador = null;
+    if (selectedCliente?.isEmpty ?? false) selectedCliente = null;
   }
 
   @override
@@ -89,6 +91,17 @@ class _EditReportScreenState extends State<EditReportScreen> {
           colaborador = authController.currentUser?.name ?? authController.currentUser?.username;
         });
       }
+      
+      // Para não-admins, sempre define CSN como cliente padrão se não houver um selecionado
+      if (authController.currentUser?.role != 'ADMIN' && (selectedCliente?.isEmpty ?? true)) {
+        setState(() {
+          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
+        });
+      } else if (authController.currentUser?.role == 'ADMIN' && (selectedCliente?.isEmpty ?? true)) {
+        setState(() {
+          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
+        });
+      }
     });
   }
 
@@ -107,7 +120,8 @@ class _EditReportScreenState extends State<EditReportScreen> {
     selectedProduto = r.produto;
     colaborador = r.colaborador;
     fornecedor = r.fornecedor;
-    selectedValue = r.tipoVagao;
+    selectedCliente = r.cliente;
+    selectedValue = null; // Campo removido
     
     // Converter datas para formato brasileiro (dd/MM/yyyy) se necessário
     dataInicioController.text = _convertToBrazilianDate(r.dataInicio);
@@ -238,7 +252,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
       produto: selectedProduto ?? '',
       colaborador: colaborador ?? '',
       fornecedor: fornecedor ?? '',
-      tipoVagao: selectedValue ?? '',
+      cliente: selectedCliente ?? '',
       dataInicio: dataInicioController.text,
       horarioInicio: horarioInicioController.text,
       dataTermino: dataTerminoController.text,
@@ -280,7 +294,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
         produto: selectedProduto ?? '',
         colaborador: colaborador ?? '',
         fornecedor: fornecedor ?? '',
-        tipoVagao: selectedValue ?? '',
+        cliente: selectedCliente ?? '',
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
         dataTermino: dataTerminoController.text,
@@ -354,7 +368,6 @@ class _EditReportScreenState extends State<EditReportScreen> {
         produto: selectedProduto ?? '',
         colaborador: colaborador ?? '',
         fornecedor: fornecedor ?? '',
-        tipoVagao: selectedValue ?? '',
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
         dataTermino: dataTerminoController.text,
@@ -495,7 +508,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
         produto: selectedProduto ?? '',
         colaborador: colaborador ?? '',
         fornecedor: fornecedor ?? '',
-        tipoVagao: selectedValue ?? '',
+        cliente: selectedCliente ?? '',
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
         dataTermino: dataTerminoController.text,
@@ -731,6 +744,10 @@ class _EditReportScreenState extends State<EditReportScreen> {
                   fornecedor: fornecedor,
                   onFornecedorChanged:
                       (val) => setState(() => fornecedor = val),
+                  selectedCliente: selectedCliente,
+                  onClienteChanged:
+                      (val) => setState(() => selectedCliente = val),
+                  isEditMode: true,
                 ),
                 const SizedBox(height: 16),
                 DadosLocomotivaCard(
