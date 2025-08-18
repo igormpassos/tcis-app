@@ -1,0 +1,39 @@
+# Arquivos de dependência
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ambiente
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+
+# Arquivos temporários
+tmp/
+temp/
+
+# Uploads (apenas para desenvolvimento local)
+uploads/
+
+# Prisma
+/prisma/migrations/
+!prisma/migrations/.keep
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+build/
+dist/
