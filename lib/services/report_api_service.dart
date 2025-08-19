@@ -159,14 +159,16 @@ class ReportApiService {
       }
       
       final reportId = createResponse['data']['id'];
+      final serverPrefix = createResponse['data']['prefix'] ?? report.prefixo;
       print('Relatório salvo com ID: $reportId');
+      print('Prefixo retornado do servidor: $serverPrefix');
       
       // PASSO 2: Upload das imagens
       List<String> imageUrls = [];
       if (imageFiles != null && imageFiles.isNotEmpty) {
         print('Fazendo upload de ${imageFiles.length} imagens...');
-        // Usar prefixo + ID do relatório para nome da pasta
-        final folderName = '${report.prefixo}-$reportId';
+        // Usar prefixo do servidor + ID do relatório para nome da pasta
+        final folderName = '$serverPrefix-$reportId';
         
         // Upload individual de cada imagem
         imageUrls = await ImageUploadService.uploadImages(
@@ -177,20 +179,25 @@ class ReportApiService {
         print('Upload de imagens concluído. URLs: ${imageUrls.length}');
       }
       
-      // PASSO 3: Gerar PDF com as imagens já no servidor
-      print('Gerando PDF...');
-      final pdfPath = await _generatePdfWithServerImages(report, imageUrls);
+      // PASSO 3: Gerar PDF com as imagens já no servidor usando o prefixo correto
+      print('Gerando PDF com prefixo: $serverPrefix');
+      
+      // Criar uma cópia do relatório com o prefixo atualizado do servidor
+      final reportWithServerPrefix = FullReportModel.fromJson({
+        ...report.toJson(),
+        'prefixo': serverPrefix,
+      });
+      
+      final pdfPath = await _generatePdfWithServerImages(reportWithServerPrefix, imageUrls);
       final generatedPdfFile = File(pdfPath);
       
       // PASSO 4: Upload do PDF (usando a mesma pasta das imagens)
       print('Fazendo upload do PDF...');
-      final folderName = imageFiles != null && imageFiles.isNotEmpty 
-          ? '${report.prefixo}-$reportId' // Mesma pasta das imagens
-          : '${report.prefixo}-$reportId'; // Pasta baseada no prefixo + ID mesmo sem imagens
+      final folderName = '$serverPrefix-$reportId';
       final pdfUrl = await ImageUploadService.uploadPdf(
         pdfFile: generatedPdfFile,
         folderName: folderName,
-        reportPrefix: report.prefixo,
+        reportPrefix: serverPrefix,
       );
       
       if (pdfUrl.isEmpty) {
