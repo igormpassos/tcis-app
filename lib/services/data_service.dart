@@ -64,7 +64,7 @@ class DataService {
   // ===== PRODUTOS =====
   Future<List<Product>> getProducts() async {
     try {
-      final response = await _apiService.get('/products');
+      final response = await _apiService.get('/products/simple');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

@@ -121,6 +121,9 @@ class AuthService {
   // Verificar se está autenticado
   bool get isAuthenticated => _apiService.isAuthenticated;
 
+  // Obter token atual
+  String? get currentToken => _apiService.currentToken;
+
   // Inicializar (carregar token salvo)
   Future<void> initialize() async {
     await _apiService.loadToken();
