@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../constants.dart';
 import '../../services/admin_service.dart';
 import '../../controllers/auth_controller.dart';
+import '../../widgets/common/delete_confirmation_dialog.dart';
 
 class TerminalManagementScreen extends StatefulWidget {
   const TerminalManagementScreen({super.key});
@@ -469,27 +470,10 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                                                   );
                                                   break;
                                                 case 'delete':
-                                                  final confirm = await showDialog<bool>(
+                                                  final confirm = await DeleteConfirmationDialog.show(
                                                     context: context,
-                                                    builder: (context) => AlertDialog(
-                                                      title: const Text('Confirmar exclusão'),
-                                                      content: Text(
-                                                        'Tem certeza que deseja excluir o terminal "${terminal['name']}"?',
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () => Navigator.pop(context, false),
-                                                          child: const Text('Cancelar'),
-                                                        ),
-                                                        ElevatedButton(
-                                                          onPressed: () => Navigator.pop(context, true),
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: Colors.red,
-                                                          ),
-                                                          child: const Text('Excluir'),
-                                                        ),
-                                                      ],
-                                                    ),
+                                                    itemType: 'terminal',
+                                                    itemName: terminal['name'],
                                                   );
                                                   if (confirm == true) {
                                                     await deleteTerminal(terminal['id']);

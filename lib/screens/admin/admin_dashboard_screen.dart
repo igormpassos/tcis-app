@@ -6,6 +6,7 @@ import 'user_management_screen.dart';
 import 'supplier_management_screen.dart';
 import 'product_management_screen.dart';
 import 'terminal_management_screen.dart';
+import 'client_management_screen.dart';
 import 'all_reports_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -127,7 +128,7 @@ class AdminDashboardScreen extends StatelessWidget {
                               crossAxisCount: 2,
                               crossAxisSpacing: 15,
                               mainAxisSpacing: 15,
-                              childAspectRatio: 1.2,
+                              childAspectRatio: 1.0,
                               children: [
                                 _buildAdminCard(
                                   context,
@@ -178,6 +179,19 @@ class AdminDashboardScreen extends StatelessWidget {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => const TerminalManagementScreen(),
+                                    ),
+                                  ),
+                                ),
+                                _buildAdminCard(
+                                  context,
+                                  'Clientes',
+                                  'Gerenciar clientes',
+                                  Icons.people_alt,
+                                  Colors.teal,
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const ClientManagementScreen(),
                                     ),
                                   ),
                                 ),

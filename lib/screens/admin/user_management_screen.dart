@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../constants.dart';
 import '../../services/admin_service.dart';
 import '../../controllers/auth_controller.dart';
+import '../../widgets/common/delete_confirmation_dialog.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});

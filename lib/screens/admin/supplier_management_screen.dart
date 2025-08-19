@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../constants.dart';
 import '../../services/admin_service.dart';
 import '../../controllers/auth_controller.dart';
+import '../../widgets/common/delete_confirmation_dialog.dart';
 
 class SupplierManagementScreen extends StatefulWidget {
   const SupplierManagementScreen({super.key});
@@ -378,27 +379,10 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                                                   showCreateSupplierDialog(supplier: supplier);
                                                   break;
                                                 case 'delete':
-                                                  final confirm = await showDialog<bool>(
+                                                  final confirm = await DeleteConfirmationDialog.show(
                                                     context: context,
-                                                    builder: (context) => AlertDialog(
-                                                      title: const Text('Confirmar exclusão'),
-                                                      content: Text(
-                                                        'Tem certeza que deseja excluir o fornecedor "${supplier['name']}"?',
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () => Navigator.pop(context, false),
-                                                          child: const Text('Cancelar'),
-                                                        ),
-                                                        ElevatedButton(
-                                                          onPressed: () => Navigator.pop(context, true),
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: Colors.red,
-                                                          ),
-                                                          child: const Text('Excluir'),
-                                                        ),
-                                                      ],
-                                                    ),
+                                                    itemType: 'fornecedor',
+                                                    itemName: supplier['name'],
                                                   );
                                                   if (confirm == true) {
                                                     await deleteSupplier(supplier['id']);
