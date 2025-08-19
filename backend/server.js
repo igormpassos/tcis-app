@@ -15,6 +15,7 @@ const supplierRoutes = require('./routes/suppliers');
 const employeeRoutes = require('./routes/employees');
 const clientRoutes = require('./routes/clients');
 const uploadRoutes = require('./routes/uploads');
+const userRoutes = require('./routes/users');
 
 // Importar middlewares
 const errorHandler = require('./middleware/errorHandler');
@@ -79,6 +80,7 @@ app.use('/api/suppliers', authenticateToken, supplierRoutes);
 app.use('/api/employees', authenticateToken, employeeRoutes);
 app.use('/api/clients', authenticateToken, clientRoutes);
 app.use('/api/uploads', authenticateToken, uploadRoutes);
+app.use('/api/users', authenticateToken, userRoutes);
 
 // Rota 404
 app.use('*', (req, res) => {
