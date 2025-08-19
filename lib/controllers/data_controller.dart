@@ -115,7 +115,10 @@ class DataController extends ChangeNotifier {
   }
 
   List<Product> getProductsBySupplier(int supplierId) {
-    return _products.where((product) => product.supplierId == supplierId).toList();
+    return _products.where((product) {
+      // Verifica se o produto tem fornecedores e se o supplierId está na lista
+      return product.suppliers?.any((supplier) => supplier.id == supplierId) ?? false;
+    }).toList();
   }
 
   List<Product> getProductsByCategory(String category) {

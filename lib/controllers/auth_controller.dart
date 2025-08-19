@@ -116,6 +116,11 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Obter token atual
+  String? getToken() {
+    return _authService.currentToken;
+  }
+
   // Atualizar perfil do usuário
   Future<void> refreshProfile() async {
     if (_authService.isAuthenticated) {
