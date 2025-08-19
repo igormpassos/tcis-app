@@ -566,4 +566,102 @@ class AdminService {
       throw Exception('Erro de conexão: $e');
     }
   }
+
+  // CLIENTES
+  static Future<Map<String, dynamic>> getClients({
+    String? token,
+    int page = 1,
+    int limit = 20,
+    String? search,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+      
+      if (search != null && search.isNotEmpty) {
+        queryParams['search'] = search;
+      }
+
+      final uri = Uri.parse('$baseUrl/api/clients').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: _getHeaders(token));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Erro ao carregar clientes: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erro de conexão: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> createClient({
+    required String token,
+    required String name,
+    String? contact,
+    List<String>? emails,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'name': name,
+      };
+      
+      if (contact != null && contact.isNotEmpty) body['contact'] = contact;
+      if (emails != null && emails.isNotEmpty) body['emails'] = emails;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/clients'),
+        headers: _getHeaders(token),
+        body: json.encode(body),
+      );
+
+      return json.decode(response.body);
+    } catch (e) {
+      throw Exception('Erro ao criar cliente: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateClient({
+    required String token,
+    required int clientId,
+    String? name,
+    String? contact,
+    List<String>? emails,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      
+      if (name != null) body['name'] = name;
+      if (contact != null) body['contact'] = contact;
+      if (emails != null) body['emails'] = emails;
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/clients/$clientId'),
+        headers: _getHeaders(token),
+        body: json.encode(body),
+      );
+
+      return json.decode(response.body);
+    } catch (e) {
+      throw Exception('Erro ao atualizar cliente: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteClient({
+    required String token,
+    required int clientId,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/clients/$clientId'),
+        headers: _getHeaders(token),
+      );
+
+      return json.decode(response.body);
+    } catch (e) {
+      throw Exception('Erro ao deletar cliente: $e');
+    }
+  }
 }

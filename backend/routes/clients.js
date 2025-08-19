@@ -1,20 +1,78 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const { body, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Listar todos os clientes
-router.get('/', async (req, res) => {
+router.get('/', [
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Página deve ser um número inteiro positivo'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limite deve ser um número entre 1 e 100'),
+  query('search')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Busca deve ter no máximo 100 caracteres')
+], async (req, res) => {
   try {
-    const clients = await prisma.client.findMany({
-      orderBy: { name: 'asc' }
-    });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parâmetros inválidos',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      page = 1,
+      limit = 20,
+      search
+    } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Filtros
+    const where = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { contact: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Buscar clientes
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        orderBy: { name: 'asc' }
+      }),
+      prisma.client.count({ where })
+    ]);
+
+    const totalPages = Math.ceil(total / parseInt(limit));
     
     res.json({
       success: true,
-      data: clients
+      data: clients,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages,
+        hasNext: parseInt(page) < totalPages,
+        hasPrev: parseInt(page) > 1
+      }
     });
   } catch (error) {
     console.error('Erro ao listar clientes:', error);
