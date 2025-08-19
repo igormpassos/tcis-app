@@ -113,10 +113,9 @@ class Product {
   final String? description;
   final String? category;
   final bool active;
-  final int? supplierId;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final Supplier? supplier;
+  final List<Supplier>? suppliers; // Nova estrutura: lista de fornecedores
 
   Product({
     required this.id,
@@ -125,10 +124,9 @@ class Product {
     this.description,
     this.category,
     required this.active,
-    this.supplierId,
     required this.createdAt,
     required this.updatedAt,
-    this.supplier,
+    this.suppliers,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -139,10 +137,13 @@ class Product {
       description: json['description'],
       category: json['category'],
       active: json['active'],
-      supplierId: json['supplierId'],
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
-      supplier: json['supplier'] != null ? Supplier.fromJson(json['supplier']) : null,
+      suppliers: json['suppliers'] != null
+          ? (json['suppliers'] as List)
+              .map((supplier) => Supplier.fromJson(supplier))
+              .toList()
+          : null,
     );
   }
 
@@ -154,10 +155,9 @@ class Product {
       'description': description,
       'category': category,
       'active': active,
-      'supplierId': supplierId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
-      if (supplier != null) 'supplier': supplier!.toJson(),
+      if (suppliers != null) 'suppliers': suppliers!.map((s) => s.toJson()).toList(),
     };
   }
 }
