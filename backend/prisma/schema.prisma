@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,137 +17,133 @@ model User {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  reports Report[]
+  reports   Report[]
 
   @@map("users")
-}
-
-enum Role {
-  ADMIN
-  USER
 }
 
 model Terminal {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   code      String?  @unique
-  prefix    String?  // Prefixo para geração automática de relatórios (ex: "NEL-2", "NCL-1")
   location  String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  reports Report[]
+  prefix    String?
+  reports   Report[]
 
   @@map("terminals")
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  code        String?  @unique
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  code        String?           @unique
   description String?
   category    String?
-  active      Boolean  @default(true)
-  supplierId  Int?     // Relacionamento com fornecedor
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  supplier Supplier? @relation(fields: [supplierId], references: [id])
-  reports  Report[]
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  suppliers   ProductSupplier[]
+  reports     Report[]
 
   @@map("products")
 }
 
 model Supplier {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  code      String?  @unique
+  id        Int               @id @default(autoincrement())
+  name      String            @unique
+  code      String?           @unique
   contact   String?
   email     String?
   phone     String?
   address   String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  products Product[] // Um fornecedor pode ter muitos produtos
-  reports  Report[]
+  active    Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  products  ProductSupplier[]
+  reports   Report[]
 
   @@map("suppliers")
+}
+
+model ProductSupplier {
+  id         Int       @id @default(autoincrement())
+  productId  Int
+  supplierId Int
+  isActive   Boolean?  @default(true)
+  createdAt  DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  supplier   Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([productId, supplierId])
+  @@map("product_suppliers")
 }
 
 model Client {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   contact   String?
-  emails    String[] // Array de emails
+  emails    String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   reports   Report[]
 
   @@map("clients")
 }
 
 model Report {
-  id                      String    @id @default(uuid())
-  prefix                  String
-  status                  Int       @default(0) // 0: rascunho (local), 1: finalizado, 2: revisão, 3: enviado
-  
-  // Relacionamentos
-  terminal                Terminal? @relation(fields: [terminalId], references: [id])
-  terminalId              Int?
-  product                 Product?  @relation(fields: [productId], references: [id])
-  productId               Int?
-  supplier                Supplier? @relation(fields: [supplierId], references: [id])
-  supplierId              Int?
-  client                  Client?   @relation(fields: [clientId], references: [id])
-  clientId                Int?
-  user                    User      @relation(fields: [userId], references: [id])
-  userId                  Int
-
-  // Informações de data/hora unificadas
-  startDateTime           DateTime
-  endDateTime             DateTime
-  arrivalDateTime         DateTime?
-  departureDateTime       DateTime?
-
-  // Informações de controle
-  hasContamination        Boolean?
+  id                       String        @id @default(uuid())
+  prefix                   String
+  status                   Int           @default(0)
+  terminalId               Int?
+  productId                Int?
+  supplierId               Int?
+  userId                   Int
+  hasContamination         Boolean?
   contaminationDescription String?
-  homogeneousMaterial     String?
-  visibleMoisture         String?
-  rainOccurred            String?
-  supplierAccompanied     String?
-  observations            String?
-
-  // PDF e imagens gerados
-  pdfUrl                  String?
-  createdBy               Int       @default(1) // ID do usuário que criou o relatório
-  imageUrls               String[] // Array de URLs de imagens
-
-  // Timestamps
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-
-  // Imagens associadas (mantido para compatibilidade)
-  images                  ReportImage[]
+  homogeneousMaterial      String?
+  visibleMoisture          String?
+  rainOccurred             String?
+  supplierAccompanied      String?
+  observations             String?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+  arrivalDateTime          DateTime?
+  departureDateTime        DateTime?
+  endDateTime              DateTime
+  imageUrls                String[]
+  pdfUrl                   String?
+  startDateTime            DateTime
+  createdBy                Int           @default(1)
+  clientId                 Int?
+  images                   ReportImage[]
+  client                   Client?       @relation(fields: [clientId], references: [id])
+  product                  Product?      @relation(fields: [productId], references: [id])
+  supplier                 Supplier?     @relation(fields: [supplierId], references: [id])
+  terminal                 Terminal?     @relation(fields: [terminalId], references: [id])
+  user                     User          @relation(fields: [userId], references: [id])
 
   @@map("reports")
 }
 
 model ReportImage {
-  id        Int      @id @default(autoincrement())
-  filename  String
+  id           Int      @id @default(autoincrement())
+  filename     String
   originalName String
-  path      String
-  size      Int
-  mimetype  String
-  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  reportId  String
-  createdAt DateTime @default(now())
+  path         String
+  size         Int
+  mimetype     String
+  reportId     String
+  createdAt    DateTime @default(now())
+  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@map("report_images")
+}
+
+enum Role {
+  ADMIN
+  USER
 }
