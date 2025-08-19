@@ -284,19 +284,6 @@ router.get('/', listReportsValidation, validate, async (req, res) => {
           },
           user: {
             select: { id: true, name: true, username: true, email: true, role: true }
-          },
-          images: {
-            select: {
-              id: true,
-              filename: true,
-              originalName: true,
-              path: true,
-              size: true,
-              createdAt: true
-            }
-          },
-          _count: {
-            select: { images: true }
           }
         }
       }),
@@ -355,18 +342,6 @@ router.get('/:id', [
         },
         user: {
           select: { id: true, name: true, username: true, email: true, role: true }
-        },
-        images: {
-          select: {
-            id: true,
-            filename: true,
-            originalName: true,
-            path: true,
-            size: true,
-            mimetype: true,
-            createdAt: true
-          },
-          orderBy: { createdAt: 'asc' }
         }
       }
     });
@@ -716,16 +691,6 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
         },
         user: {
           select: { id: true, name: true, username: true, email: true, role: true }
-        },
-        images: {
-          select: {
-            id: true,
-            filename: true,
-            originalName: true,
-            path: true,
-            size: true,
-            createdAt: true
-          }
         }
       }
     });
@@ -761,9 +726,6 @@ router.delete('/:id', [
       where: {
         id,
         userId: req.user.id
-      },
-      include: {
-        images: true
       }
     });
 

@@ -1,90 +1,48 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Inserindo dados da TCIS...');
 
-  // Limpar dados existent  console.log('🔗 Relacionamentos produto-fornecedor criados:', productSupplierRelations.length);
-
-  // Criar usuários
-  console.log('👥 Criando usuários...');
-  const users = await Promise.all([
-    prisma.user.create({
-      data: {
-        username: 'tcis',
-        password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password: tcis
-        email: 'admin@tcis.com.br',
-        name: 'Administrador TCIS',
-        role: 'ADMIN'
-      }
-    }),
-    prisma.user.create({
-      data: {
-        username: 'operador',
-        password: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password: operador
-        email: 'operador@tcis.com.br',
-        name: 'Operador Sistema',
-        role: 'USER'
-      }
-    })
-  ]);
-  console.log('👥 Usuários criados:', users.length);
-
-  // Criar clientes
-  console.log('🏢 Criando clientes...');
-  const clients = await Promise.all([
-    prisma.client.create({
-      data: {
-        name: 'CSN',
-        contact: 'Departamento de Recebimento',
-        emails: ['recebimento@csn.com.br', 'qualidade@csn.com.br']
-      }
-    }),
-    prisma.client.create({
-      data: {
-        name: 'Vale',
-        contact: 'Controle de Qualidade',
-        emails: ['qualidade@vale.com']
-      }
-    })
-  ]);
-  console.log('🏢 Clientes criados:', clients.length);
-
-  console.log('✅ Dados da TCIS inseridos com sucesso!');
-}exceto usuário admin)
+  // Limpar dados existentes (exceto usuário admin)
+  await prisma.productSupplier.deleteMany({});
+  await prisma.report.deleteMany({});
+  await prisma.client.deleteMany({});
+  await prisma.user.deleteMany({ where: { role: 'USER' } });
   await prisma.product.deleteMany({});
   await prisma.supplier.deleteMany({});
   await prisma.terminal.deleteMany({});
   
   console.log('🗑️ Dados antigos removidos');
 
-  // Inserir terminais
+  // Inserir terminais com prefixos
   const terminals = await Promise.all([
-    prisma.terminal.create({ data: { name: 'Terminal Serra Azul', code: 'TSA', location: 'Serra Azul' }}),
-    prisma.terminal.create({ data: { name: 'Sarzedo Velho (Itaminas)', code: 'SZD', location: 'Sarzedo - MG' }}),
-    prisma.terminal.create({ data: { name: 'Terminal Sarzedo Novo', code: 'TCS', location: 'Sarzedo - MG' }}),
-    prisma.terminal.create({ data: { name: 'Terminal Multitudo', code: 'TCM', location: 'Multitudo' }}),
-    prisma.terminal.create({ data: { name: 'Terminal de Itutinga', code: 'TCI', location: 'Itutinga - MG' }})
+    prisma.terminal.create({ data: { name: 'Terminal Serra Azul', code: 'TSA', location: 'Serra Azul', prefix: 'AAA-1' }}),
+    prisma.terminal.create({ data: { name: 'Sarzedo Velho (Itaminas)', code: 'SZD', location: 'Sarzedo - MG', prefix: 'SZD' }}),
+    prisma.terminal.create({ data: { name: 'Terminal Sarzedo Novo', code: 'TCS', location: 'Sarzedo - MG', prefix: 'TCS' }}),
+    prisma.terminal.create({ data: { name: 'Terminal Murtinho', code: 'TCM', location: 'Congonhas - MG', prefix: 'TCM' }}),
+    prisma.terminal.create({ data: { name: 'Terminal de Itutinga', code: 'TCI', location: 'Itutinga - MG', prefix: 'TCI' }})
   ]);
   console.log('🚉 Terminais inseridos:', terminals.length);
 
   // Inserir fornecedores
   const suppliers = await Promise.all([
-    prisma.supplier.create({ data: { name: 'AVG', code: 'AVG', contact: 'Contato AVG', email: 'contato@avg.com', phone: '(31) 7777-7777', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'ECKOMINING', code: 'EKO', contact: 'Contato EKO', email: 'contato@eckomining.com', phone: '(31) 0000-0000', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'LHG', code: 'LHG', contact: 'Contato LHG', email: 'contato@lhg.com', phone: '(31) 5555-5555', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'FERRO+', code: 'FER', contact: 'Contato FERRO+', email: 'contato@ferromais.com', phone: '(31) 0000-1111', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'J.MENDES', code: 'JME', contact: 'Contato J.MENDES', email: 'contato@jmendes.com', phone: '(31) 4444-4444', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'HERCULANO', code: 'HER', contact: 'Contato HERCULANO', email: 'contato@herculano.com', phone: '(31) 2222-2222', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'ITAMINAS', code: 'ITA', contact: 'Contato ITAMINAS', email: 'contato@itaminas.com', phone: '(31) 1111-1111', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'SERRA LESTE', code: 'SLE', contact: 'Contato SERRA LESTE', email: 'contato@serraleste.com', phone: '(31) 3333-3333', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'SERRA LOPES', code: 'SLO', contact: 'Contato SERRA LOPES', email: 'contato@serralopes.com', phone: '(31) 6666-6666', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'VETRIA', code: 'VET', contact: 'Contato VETRIA', email: 'contato@vetria.com', phone: '(31) 0000-1111', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: '4B', code: '4B', contact: 'Contato 4B', email: 'contato@4b.com', phone: '(31) 9999-9999', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: '3A', code: '3A', contact: 'Contato 3A', email: 'contato@3a.com', phone: '(31) 1111-2222', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'BEMISA', code: 'BEM', contact: 'Contato BEMISA', email: 'contato@bemisa.com', phone: '(31) 8888-8888', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'MINERITA', code: 'MIN', contact: 'Contato MINERITA', email: 'contato@minerita.com', phone: '(31) 2222-4444', address: 'Minas Gerais' }}),
-    prisma.supplier.create({ data: { name: 'Outro', code: 'OUT', contact: 'Contato Genérico', email: 'contato@outro.com', phone: '(31) 2222-3333', address: 'Diversos' }})
+    prisma.supplier.create({ data: { name: 'AVG', code: 'AVG', contact: 'Suporte AVG', email: 'contato@avg.com', phone: '(31) 1111-2222', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'ECKOMINING', code: 'EKO', contact: 'Suporte ECKOMINING', email: 'contato@eckomining.com', phone: '(31) 2222-3333', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'LHG', code: 'LHG', contact: 'Suporte LHG', email: 'contato@lhg.com', phone: '(31) 3333-4444', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'FERRO+', code: 'FER', contact: 'Suporte FERRO+', email: 'contato@ferromais.com', phone: '(31) 4444-5555', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'J.MENDES', code: 'JME', contact: 'Suporte J.MENDES', email: 'contato@jmendes.com', phone: '(31) 5555-6666', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'HERCULANO', code: 'HER', contact: 'Suporte HERCULANO', email: 'contato@herculano.com', phone: '(31) 6666-7777', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'ITAMINAS', code: 'ITA', contact: 'Suporte ITAMINAS', email: 'contato@itaminas.com', phone: '(31) 7777-8888', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'SERRA LESTE', code: 'SLE', contact: 'Suporte SERRA LESTE', email: 'contato@serraleste.com', phone: '(31) 8888-9999', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'SERRA LOPES', code: 'SLO', contact: 'Suporte SERRA LOPES', email: 'contato@serralopes.com', phone: '(31) 9999-0000', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'VETRIA', code: 'VET', contact: 'Suporte VETRIA', email: 'contato@vetria.com', phone: '(31) 1010-1111', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: '4B', code: '4B', contact: 'Suporte 4B', email: 'contato@4b.com', phone: '(31) 1111-1212', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: '3A', code: '3A', contact: 'Suporte 3A', email: 'contato@3a.com', phone: '(31) 1212-1313', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'BEMISA', code: 'BEM', contact: 'Suporte BEMISA', email: 'contato@bemisa.com', phone: '(31) 1313-1414', address: 'MG' }}),
+    prisma.supplier.create({ data: { name: 'MINERITA', code: 'MIN', contact: 'Suporte MINERITA', email: 'contato@minerita.com', phone: '(31) 1414-1515', address: 'MG' }}),
   ]);
   console.log('🏭 Fornecedores inseridos:', suppliers.length);
 
@@ -207,20 +165,15 @@ async function main() {
 
   // Criar mapas para facilitar busca
   const productMap = {};
-  const supplierMapById = {};
   
   products.forEach(product => {
     productMap[product.name] = product.id;
-  });
-  
-  suppliers.forEach(supplier => {
-    supplierMapById[supplier.name] = supplier.id;
   });
 
   // Criar relacionamentos
   for (const relation of productSupplierRelations) {
     const productId = productMap[relation.productName];
-    const supplierId = supplierMapById[relation.supplierName];
+    const supplierId = supplierMap[relation.supplierName];
     
     if (productId && supplierId) {
       await prisma.productSupplier.create({
@@ -232,13 +185,47 @@ async function main() {
     }
   }
   
-  console.log('� Relacionamentos produto-fornecedor criados:', productSupplierRelations.length);
+  console.log('🔗 Relacionamentos produto-fornecedor criados:', productSupplierRelations.length);
+
+  // Criar usuários
+  console.log('👥 Criando usuários...');
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash('tcis', saltRounds);
+  
+  const users = await Promise.all([
+    prisma.user.create({
+      data: {
+        username: 'tcis',
+        password: hashedPassword,
+        email: 'admin@tcis.com.br',
+        name: 'Administrador TCIS',
+        role: 'ADMIN'
+      }
+    }),
+    
+  ]);
+  console.log('👥 Usuários criados:', users.length);
+
+  // Criar clientes
+  console.log('🏢 Criando clientes...');
+  const clients = await Promise.all([
+    prisma.client.create({
+      data: {
+        name: 'CSN - Companhia Siderúrgica Nacional',
+        contact: 'contato@csn.com.br',
+        emails: ['recebimento@csn.com.br', 'qualidade@csn.com.br']
+      }
+    }),
+    
+  ]);
+  console.log('🏢 Clientes criados:', clients.length);
 
   console.log('✅ Dados da TCIS inseridos com sucesso!');
 }
 
 main()
   .catch((e) => {
+    console.error('❌ Erro ao executar seed:', e);
     throw e;
   })
   .finally(async () => {

@@ -26,11 +26,12 @@ model Terminal {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   code      String?  @unique
+  prefix    String?
   location  String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  prefix    String?
+  
   reports   Report[]
 
   @@map("terminals")
@@ -95,9 +96,9 @@ model Client {
 }
 
 model Report {
-  id                       String        @id @default(uuid())
+  id                       String    @id @default(uuid())
   prefix                   String
-  status                   Int           @default(0)
+  status                   Int       @default(0)
   terminalId               Int?
   productId                Int?
   supplierId               Int?
@@ -109,38 +110,23 @@ model Report {
   rainOccurred             String?
   supplierAccompanied      String?
   observations             String?
-  createdAt                DateTime      @default(now())
-  updatedAt                DateTime      @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
   arrivalDateTime          DateTime?
   departureDateTime        DateTime?
   endDateTime              DateTime
   imageUrls                String[]
   pdfUrl                   String?
   startDateTime            DateTime
-  createdBy                Int           @default(1)
+  createdBy                Int       @default(1)
   clientId                 Int?
-  images                   ReportImage[]
-  client                   Client?       @relation(fields: [clientId], references: [id])
-  product                  Product?      @relation(fields: [productId], references: [id])
-  supplier                 Supplier?     @relation(fields: [supplierId], references: [id])
-  terminal                 Terminal?     @relation(fields: [terminalId], references: [id])
-  user                     User          @relation(fields: [userId], references: [id])
+  client                   Client?   @relation(fields: [clientId], references: [id])
+  product                  Product?  @relation(fields: [productId], references: [id])
+  supplier                 Supplier? @relation(fields: [supplierId], references: [id])
+  terminal                 Terminal? @relation(fields: [terminalId], references: [id])
+  user                     User      @relation(fields: [userId], references: [id])
 
   @@map("reports")
-}
-
-model ReportImage {
-  id           Int      @id @default(autoincrement())
-  filename     String
-  originalName String
-  path         String
-  size         Int
-  mimetype     String
-  reportId     String
-  createdAt    DateTime @default(now())
-  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-
-  @@map("report_images")
 }
 
 enum Role {
