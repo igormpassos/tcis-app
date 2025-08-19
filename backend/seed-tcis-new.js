@@ -19,11 +19,12 @@ async function main() {
 
   // Inserir terminais com prefixos
   const terminals = await Promise.all([
-    prisma.terminal.create({ data: { name: 'Terminal Serra Azul', code: 'TSA', location: 'Serra Azul', prefix: 'AAA-1' }}),
-    prisma.terminal.create({ data: { name: 'Sarzedo Velho (Itaminas)', code: 'SZD', location: 'Sarzedo - MG', prefix: 'SZD' }}),
-    prisma.terminal.create({ data: { name: 'Terminal Sarzedo Novo', code: 'TCS', location: 'Sarzedo - MG', prefix: 'TCS' }}),
-    prisma.terminal.create({ data: { name: 'Terminal Murtinho', code: 'TCM', location: 'Congonhas - MG', prefix: 'TCM' }}),
-    prisma.terminal.create({ data: { name: 'Terminal de Itutinga', code: 'TCI', location: 'Itutinga - MG', prefix: 'TCI' }})
+    prisma.terminal.create({ data: { name: 'Serra Azul', code: 'TSA', location: 'Serra Azul', prefix: 'NEL-2' }}),
+    prisma.terminal.create({ data: { name: 'Sarzedo Velho (Itaminas)', code: 'SZD', location: 'Sarzedo - MG', prefix: 'NEL-1' }}),
+    prisma.terminal.create({ data: { name: 'Sarzedo Novo', code: 'TCS', location: 'Sarzedo - MG', prefix: 'NEL-3' }}),
+    prisma.terminal.create({ data: { name: 'Murtinho', code: 'TCM', location: 'Congonhas - MG', prefix: 'NCL-1' }}),
+    prisma.terminal.create({ data: { name: 'Itutinga', code: 'TCI', location: 'Itutinga - MG', prefix: 'NFV-2' }}),
+    prisma.terminal.create({ data: { name: 'Vallourec', code: 'VSB', location: '', prefix: 'VSB-1' }})
   ]);
   console.log('🚉 Terminais inseridos:', terminals.length);
 
