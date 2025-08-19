@@ -90,7 +90,26 @@ const requireRole = (roles) => {
   };
 };
 
+const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Usuário não autenticado'
+    });
+  }
+
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Acesso restrito a administradores'
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
-  requireRole
+  requireRole,
+  requireAdmin
 };
