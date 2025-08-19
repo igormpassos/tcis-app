@@ -7,24 +7,28 @@ const { requireRole } = require('../middleware/auth');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Validações
+// Validação para criação de terminal
 const createTerminalValidation = [
   body('name')
     .notEmpty()
     .withMessage('Nome é obrigatório')
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Nome deve ter entre 1 e 100 caracteres'),
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  
   body('code')
     .optional()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage('Código deve ter no máximo 50 caracteres'),
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Código deve ter entre 2 e 50 caracteres'),
+  
+  body('prefix')
+    .optional()
+    .isLength({ max: 20 })
+    .withMessage('Prefix deve ter no máximo 20 caracteres'),
+  
   body('location')
     .optional()
-    .trim()
-    .isLength({ max: 200 })
-    .withMessage('Localização deve ter no máximo 200 caracteres')
+    .isLength({ max: 255 })
+    .withMessage('Localização deve ter no máximo 255 caracteres')
 ];
 
 // GET /api/terminals - Listar terminais
@@ -156,7 +160,7 @@ router.get('/:id', [
 // POST /api/terminals - Criar novo terminal (apenas admin)
 router.post('/', requireRole('ADMIN'), createTerminalValidation, validate, async (req, res) => {
   try {
-    const { name, code, location } = req.body;
+    const { name, code, prefix, location } = req.body;
 
     // Verificar se já existe terminal com mesmo nome ou código
     const existingTerminal = await prisma.terminal.findFirst({
@@ -179,6 +183,7 @@ router.post('/', requireRole('ADMIN'), createTerminalValidation, validate, async
       data: {
         name,
         code,
+        prefix,
         location
       }
     });
@@ -215,6 +220,11 @@ router.put('/:id', requireRole('ADMIN'), [
     .trim()
     .isLength({ max: 50 })
     .withMessage('Código deve ter no máximo 50 caracteres'),
+  body('prefix')
+    .optional()
+    .trim()
+    .isLength({ max: 20 })
+    .withMessage('Prefix deve ter no máximo 20 caracteres'),
   body('location')
     .optional()
     .trim()
@@ -227,7 +237,7 @@ router.put('/:id', requireRole('ADMIN'), [
 ], validate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, location, active } = req.body;
+    const { name, code, prefix, location, active } = req.body;
 
     // Verificar se o terminal existe
     const existingTerminal = await prisma.terminal.findUnique({
@@ -265,6 +275,7 @@ router.put('/:id', requireRole('ADMIN'), [
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (code !== undefined) updateData.code = code;
+    if (prefix !== undefined) updateData.prefix = prefix;
     if (location !== undefined) updateData.location = location;
     if (active !== undefined) updateData.active = active;
 

@@ -2,6 +2,7 @@ const express = require('express');
 const { body, query, param } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const validate = require('../middleware/validation');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -235,9 +236,12 @@ router.get('/', listReportsValidation, validate, async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Filtros
-    const where = {
-      userId: req.user.id // Usuários só veem seus próprios relatórios
-    };
+    const where = {};
+
+    // Se não for admin, só mostra relatórios do próprio usuário
+    if (req.user.role !== 'ADMIN') {
+      where.userId = req.user.id;
+    }
 
     if (status !== undefined) {
       where.status = parseInt(status);

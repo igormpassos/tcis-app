@@ -128,6 +128,44 @@ router.get('/', [
   }
 });
 
+// GET /api/suppliers/simple - Listar fornecedores sem paginação (para dropdowns)
+router.get('/simple', async (req, res) => {
+  try {
+    const suppliers = await prisma.supplier.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      include: {
+        products: {
+          include: {
+            product: true
+          },
+          where: {
+            isActive: true
+          }
+        }
+      }
+    });
+
+    // Transformar os dados para incluir lista de produtos
+    const suppliersWithProducts = suppliers.map(supplier => ({
+      ...supplier,
+      products: supplier.products.map(ps => ps.product)
+    }));
+
+    res.json({
+      success: true,
+      data: suppliersWithProducts
+    });
+
+  } catch (error) {
+    console.error('Erro ao listar fornecedores simples:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
 // GET /api/suppliers/:id - Buscar fornecedor específico
 router.get('/:id', [
   param('id')

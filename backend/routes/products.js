@@ -96,6 +96,14 @@ router.get('/', [
         take: parseInt(limit),
         orderBy: { name: 'asc' },
         include: {
+          suppliers: {
+            include: {
+              supplier: true
+            },
+            where: {
+              isActive: true
+            }
+          },
           _count: {
             select: { reports: true }
           }
@@ -104,11 +112,17 @@ router.get('/', [
       prisma.product.count({ where })
     ]);
 
+    // Transformar os dados para incluir lista de fornecedores
+    const productsWithSuppliers = products.map(product => ({
+      ...product,
+      suppliers: product.suppliers.map(ps => ps.supplier)
+    }));
+
     const totalPages = Math.ceil(total / parseInt(limit));
 
     res.json({
       success: true,
-      data: products,
+      data: productsWithSuppliers,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -121,6 +135,44 @@ router.get('/', [
 
   } catch (error) {
     console.error('Erro ao listar produtos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+// GET /api/products/simple - Listar produtos sem paginação (para dropdowns)
+router.get('/simple', async (req, res) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      include: {
+        suppliers: {
+          include: {
+            supplier: true
+          },
+          where: {
+            isActive: true
+          }
+        }
+      }
+    });
+
+    // Transformar os dados para incluir lista de fornecedores
+    const productsWithSuppliers = products.map(product => ({
+      ...product,
+      suppliers: product.suppliers.map(ps => ps.supplier)
+    }));
+
+    res.json({
+      success: true,
+      data: productsWithSuppliers
+    });
+
+  } catch (error) {
+    console.error('Erro ao listar produtos simples:', error);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'
@@ -173,6 +225,14 @@ router.get('/:id', [
     const product = await prisma.product.findUnique({
       where: { id: parseInt(id) },
       include: {
+        suppliers: {
+          include: {
+            supplier: true
+          },
+          where: {
+            isActive: true
+          }
+        },
         _count: {
           select: { reports: true }
         }
@@ -186,9 +246,15 @@ router.get('/:id', [
       });
     }
 
+    // Transformar dados para incluir lista de fornecedores
+    const productWithSuppliers = {
+      ...product,
+      suppliers: product.suppliers.map(ps => ps.supplier)
+    };
+
     res.json({
       success: true,
-      data: product
+      data: productWithSuppliers
     });
 
   } catch (error) {
@@ -389,6 +455,149 @@ router.delete('/:id', requireRole('ADMIN'), [
 
   } catch (error) {
     console.error('Erro ao excluir produto:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+// POST /api/products/:id/suppliers - Adicionar fornecedor ao produto (apenas admin)
+router.post('/:id/suppliers', requireRole('ADMIN'), [
+  param('id')
+    .notEmpty()
+    .withMessage('ID do produto é obrigatório')
+    .isInt({ min: 1 })
+    .withMessage('ID do produto deve ser um número inteiro positivo'),
+  body('supplierId')
+    .notEmpty()
+    .withMessage('ID do fornecedor é obrigatório')
+    .isInt({ min: 1 })
+    .withMessage('ID do fornecedor deve ser um número inteiro positivo')
+], validate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { supplierId } = req.body;
+
+    // Verificar se produto existe
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produto não encontrado'
+      });
+    }
+
+    // Verificar se fornecedor existe
+    const supplier = await prisma.supplier.findUnique({
+      where: { id: parseInt(supplierId) }
+    });
+
+    if (!supplier) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fornecedor não encontrado'
+      });
+    }
+
+    // Verificar se a relação já existe
+    const existingRelation = await prisma.productSupplier.findFirst({
+      where: {
+        productId: parseInt(id),
+        supplierId: parseInt(supplierId)
+      }
+    });
+
+    if (existingRelation) {
+      // Se existe mas está inativa, ativar
+      if (!existingRelation.isActive) {
+        await prisma.productSupplier.update({
+          where: { id: existingRelation.id },
+          data: { isActive: true }
+        });
+
+        return res.json({
+          success: true,
+          message: 'Fornecedor reativado para o produto'
+        });
+      }
+
+      return res.status(409).json({
+        success: false,
+        message: 'Fornecedor já está vinculado a este produto'
+      });
+    }
+
+    // Criar a relação
+    await prisma.productSupplier.create({
+      data: {
+        productId: parseInt(id),
+        supplierId: parseInt(supplierId),
+        isActive: true
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Fornecedor adicionado ao produto com sucesso'
+    });
+
+  } catch (error) {
+    console.error('Erro ao adicionar fornecedor ao produto:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+// DELETE /api/products/:id/suppliers/:supplierId - Remover fornecedor do produto (apenas admin)
+router.delete('/:id/suppliers/:supplierId', requireRole('ADMIN'), [
+  param('id')
+    .notEmpty()
+    .withMessage('ID do produto é obrigatório')
+    .isInt({ min: 1 })
+    .withMessage('ID do produto deve ser um número inteiro positivo'),
+  param('supplierId')
+    .notEmpty()
+    .withMessage('ID do fornecedor é obrigatório')
+    .isInt({ min: 1 })
+    .withMessage('ID do fornecedor deve ser um número inteiro positivo')
+], validate, async (req, res) => {
+  try {
+    const { id, supplierId } = req.params;
+
+    // Buscar a relação
+    const relation = await prisma.productSupplier.findFirst({
+      where: {
+        productId: parseInt(id),
+        supplierId: parseInt(supplierId)
+      }
+    });
+
+    if (!relation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Relação produto-fornecedor não encontrada'
+      });
+    }
+
+    // Desativar a relação (soft delete)
+    await prisma.productSupplier.update({
+      where: { id: relation.id },
+      data: { isActive: false }
+    });
+
+    res.json({
+      success: true,
+      message: 'Fornecedor removido do produto com sucesso'
+    });
+
+  } catch (error) {
+    console.error('Erro ao remover fornecedor do produto:', error);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'
