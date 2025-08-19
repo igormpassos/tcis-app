@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import '../../controllers/auth_controller.dart';
 import '../profile/user_profile_screen.dart';
 
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 

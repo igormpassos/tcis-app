@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tcis_app/screens/home/home_screen.dart';
+import 'package:tcis_app/screens/navigation/main_navigation_screen.dart';
 import 'package:tcis_app/screens/reports/create_report.dart';
 import 'package:tcis_app/styles.dart';
 import 'package:tcis_app/screens/login/login.dart';
@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
         home: const AppInitializer(),
         routes: {
           '/login': (context) => Login(),
-          '/home': (context) => HomePage(),
+          '/home': (context) => const MainNavigationScreen(),
           '/reports': (context) => ReportEntryScreen(),
           '/example-form': (context) => const ReportFormExample(),
           '/test-api': (context) => const TestApiScreen(),
@@ -89,7 +89,7 @@ class _AppInitializerState extends State<AppInitializer> {
 
         // Se está autenticado, vai para home, senão para login
         if (authController.isAuthenticated) {
-          return HomePage();
+          return const MainNavigationScreen();
         } else {
           return Login();
         }
