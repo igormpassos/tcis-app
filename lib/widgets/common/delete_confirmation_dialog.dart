@@ -62,7 +62,7 @@ class DeleteConfirmationDialog extends StatelessWidget {
             SnackBar(
               content: Text(
                 successMessage ??
-                    '${itemType} removido${itemType.toLowerCase().endsWith('a') ? 'a' : ''} com sucesso!',
+                    '$itemType removido${itemType.toLowerCase().endsWith('a') ? 'a' : ''} com sucesso!',
               ),
               backgroundColor: Colors.green,
             ),

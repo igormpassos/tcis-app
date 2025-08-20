@@ -584,7 +584,7 @@ class AdminService {
         queryParams['search'] = search;
       }
 
-      final uri = Uri.parse('$baseUrl/api/clients').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrl/clients').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders(token));
 
       if (response.statusCode == 200) {
@@ -612,7 +612,7 @@ class AdminService {
       if (emails != null && emails.isNotEmpty) body['emails'] = emails;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/clients'),
+        Uri.parse('$baseUrl/clients'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -638,7 +638,7 @@ class AdminService {
       if (emails != null) body['emails'] = emails;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/clients/$clientId'),
+        Uri.parse('$baseUrl/clients/$clientId'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -655,7 +655,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/clients/$clientId'),
+        Uri.parse('$baseUrl/clients/$clientId'),
         headers: _getHeaders(token),
       );
 
