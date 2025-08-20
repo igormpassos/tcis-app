@@ -32,7 +32,6 @@ class ImageUploadService {
       await tempFile.writeAsBytes(compressedBytes);
       return tempFile;
     } catch (e) {
-      print('Erro ao processar imagem: $e');
       rethrow;
     }
   }
@@ -45,7 +44,6 @@ class ImageUploadService {
     try {
       final List<String> uploadedPaths = [];
       final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
-      final apiService = ApiService();
 
       for (int i = 0; i < images.length; i++) {
         final image = images[i];
@@ -93,13 +91,12 @@ class ImageUploadService {
         try {
           await processedImage.delete();
         } catch (e) {
-          print('Erro ao deletar arquivo temporário: $e');
+          // Ignore deletion errors
         }
       }
 
       return uploadedPaths;
     } catch (e) {
-      print('Erro ao fazer upload das imagens: $e');
       rethrow;
     }
   }
@@ -147,7 +144,6 @@ class ImageUploadService {
         throw Exception('Erro HTTP: ${response.statusCode}');
       }
     } catch (e) {
-      print('Erro ao fazer upload do PDF: $e');
       rethrow;
     }
   }

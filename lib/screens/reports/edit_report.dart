@@ -161,23 +161,18 @@ class _EditReportScreenState extends State<EditReportScreen> {
 
     limparDropdownsVazios();
 
-    print('   Processing ${r.imagens.length} images...');
+    // Process images
     for (var path in r.imagens) {
-      print('   Checking image path: $path');
       final file = File(path);
       if (file.existsSync()) {
-        print('   ✅ Local file exists: $path');
         _images.add({'file': file, 'timestamp': file.lastModifiedSync()});
       } else {
-        print('   ❌ Local file not found: $path');
         // Para URLs de servidor, converter caminho relativo em URL completa
         if (path.startsWith('uploads/')) {
           // É uma URL do servidor, converter para URL completa
           final fullUrl = '$API_BASE_URL/$path';
-          print('   📡 Adding as server URL: $fullUrl');
           _images.add({'url': fullUrl, 'timestamp': DateTime.now()});
         } else if (path.startsWith('http')) {
-          print('   📡 Adding as complete URL: $path');
           _images.add({'url': path, 'timestamp': DateTime.now()});
         }
       }
@@ -200,7 +195,6 @@ class _EditReportScreenState extends State<EditReportScreen> {
         // URL formato: uploads/reports/PASTA_NAME/image.jpg
         final parts = url.split('/');
         if (parts.length >= 3 && parts[0] == 'uploads' && parts[1] == 'reports') {
-          print('📁 Usando pasta existente: ${parts[2]}');
           return parts[2]; // Nome da pasta
         }
       }
@@ -210,19 +204,16 @@ class _EditReportScreenState extends State<EditReportScreen> {
     if (widget.report.pathPdf.isNotEmpty && widget.report.pathPdf.startsWith('uploads/')) {
       final parts = widget.report.pathPdf.split('/');
       if (parts.length >= 3 && parts[0] == 'uploads' && parts[1] == 'reports') {
-        print('📁 Usando pasta existente do PDF: ${parts[2]}');
         return parts[2]; // Nome da pasta
       }
     }
     
     // Para relatórios do servidor, tentar usar padrão baseado no prefixo + ID
     if (widget.report.id.isNotEmpty) {
-      print('📁 Usando pasta baseada no prefixo + ID: ${widget.report.prefixo}-${widget.report.id}');
       return '${widget.report.prefixo}-${widget.report.id}';
     }
     
     // Fallback: gerar nova pasta (não deveria acontecer para relatórios existentes)
-    print('⚠️ Não foi possível determinar pasta existente, criando nova');
     return ImageUploadService.generateFolderName(widget.report.prefixo);
   }
 
@@ -249,7 +240,6 @@ class _EditReportScreenState extends State<EditReportScreen> {
       
       return dateStr; // Retornar original se não conseguir converter
     } catch (e) {
-      print('Erro ao converter data: $dateStr - $e');
       return dateStr;
     }
   }
@@ -673,8 +663,6 @@ class _EditReportScreenState extends State<EditReportScreen> {
         fullUrl = '$API_BASE_URL/$pdfUrl';
       }
       
-      print('📱 Abrindo PDF do servidor: $fullUrl');
-      
       final uri = Uri.parse(fullUrl);
       if (await canLaunchUrl(uri)) {
         bool success = await launchUrl(
@@ -693,13 +681,11 @@ class _EditReportScreenState extends State<EditReportScreen> {
           success = await launchUrl(uri);
         }
         
-        print('✅ PDF aberto com sucesso: $success');
       } else {
-        print('❌ Não foi possível abrir o URL');
+        throw Exception('Não foi possível abrir o URL');
       }
       
     } catch (e) {
-      print('Erro ao abrir PDF: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao abrir PDF: $e'),

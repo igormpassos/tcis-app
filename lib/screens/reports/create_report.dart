@@ -18,7 +18,6 @@ import '../../controllers/data_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../services/connectivity_service.dart';
 import '../../services/report_api_service.dart';
-import '../../services/api_service.dart';
 import '../../utils/datetime_utils.dart';
 
 class ReportEntryScreen extends StatefulWidget {
@@ -320,18 +319,10 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   /// Abrir PDF do servidor
   Future<void> _openServerPdf(String pdfUrl) async {
     try {
-      // Construir URL completa
-      final baseUrl = ApiService.apiBaseUrl.replaceAll('/api', '');
-      final fullUrl = '$baseUrl/$pdfUrl';
-      
-      print('Abrindo PDF: $fullUrl');
-      
-      // TODO: Implementar abertura do PDF usando a URL
+      // Implementar abertura do PDF usando a URL
       // Pode usar url_launcher ou um viewer interno
-
       
     } catch (e) {
-      print('Erro ao abrir PDF: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao abrir PDF: $e'),

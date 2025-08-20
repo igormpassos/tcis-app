@@ -137,7 +137,6 @@ class SecondaryreportCard extends StatelessWidget {
             onPressed: () async {
               if (pathPdf is String && pathPdf.startsWith('http')) {
                 // É uma URL do servidor - abrir no navegador
-                print('📱 Abrindo PDF do servidor: $pathPdf');
                 try {
                   final uri = Uri.parse(pathPdf);
 
@@ -158,19 +157,17 @@ class SecondaryreportCard extends StatelessWidget {
                       success = await launchUrl(uri);
                     }
 
-                    print('✅ PDF aberto com sucesso: $success');
                   } else {
-                    print('❌ Não foi possível abrir o URL');
+                    throw Exception('Não foi possível abrir o URL');
                   }
                 } catch (e) {
-                  print('❌ Erro ao abrir URL: $e');
+                  // Handle error silently or show user-friendly message
                 }
               } else if (pathPdf is String && pathPdf.isNotEmpty) {
                 // É um arquivo local - abrir com OpenFile
-                print('📄 Abrindo arquivo local: $pathPdf');
                 OpenFile.open(pathPdf);
               } else {
-                print('⚠️ PDF não disponível (URL vazia)');
+                // PDF não disponível
               }
             },
           ),

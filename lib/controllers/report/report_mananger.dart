@@ -19,11 +19,9 @@ Future<void> saveOrUpdateReport(FullReportModel report) async {
   if (existingIndex >= 0) {
     // Atualizar relatório existente
     existing[existingIndex] = jsonEncode(report.toJson());
-    print('Relatório ${report.id} atualizado no armazenamento local');
   } else {
     // Adicionar novo relatório
     existing.add(jsonEncode(report.toJson()));
-    print('Novo relatório ${report.id} adicionado ao armazenamento local');
   }
 
   await prefs.setStringList('full_reports', existing);

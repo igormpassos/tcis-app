@@ -56,7 +56,6 @@ class DataService {
       }
       return null;
     } catch (e) {
-      print('Erro ao buscar fornecedor: $e');
       return null;
     }
   }

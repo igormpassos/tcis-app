@@ -90,7 +90,6 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Erro ao buscar perfil: $e');
       return null;
     }
   }

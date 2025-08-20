@@ -356,8 +356,6 @@ class ReportApiService {
 
       await _apiService.loadToken();
       
-      // DEBUG: Log do payload da edição
-      
       final response = await _apiService.put('/reports/$reportId', reportData);
 
       if (response.statusCode == 200) {

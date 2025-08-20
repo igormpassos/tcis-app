@@ -18,7 +18,6 @@ Future<Uint8List> compressImage(File imageFile) async {
     final originalImage = img.decodeImage(imageBytes);
 
     if (originalImage == null) {
-      print('Não foi possível decodificar a imagem: ${imageFile.path}');
       return imageBytes;
     }
 
@@ -27,12 +26,10 @@ Future<Uint8List> compressImage(File imageFile) async {
 
     return Uint8List.fromList(compressed);
   } catch (e) {
-    print('Erro ao comprimir imagem ${imageFile.path}: $e');
     // Retorna os bytes originais se houver erro
     try {
       return await imageFile.readAsBytes();
     } catch (e2) {
-      print('Erro ao ler arquivo de imagem: $e2');
       return Uint8List(0);
     }
   }
@@ -66,16 +63,11 @@ Future<String> generatePdf({
 }) async {
   final pdf = pw.Document();
 
-  // Carregar fonte personalizada que suporta Unicode
-  final ByteData fontData = await rootBundle.load(
-    'assets/Fonts/Inter-Regular.ttf',
-  );
-  final pw.Font font = pw.Font.ttf(fontData);
-
-  final ByteData fontBoldData = await rootBundle.load(
-    'assets/Fonts/Inter-SemiBold.ttf',
-  );
-  final pw.Font fontBold = pw.Font.ttf(fontBoldData);
+  // Fontes personalizadas comentadas - implementar quando necessário
+  // final ByteData fontData = await rootBundle.load('assets/Fonts/Inter-Regular.ttf');
+  // final pw.Font font = pw.Font.ttf(fontData);
+  // final ByteData fontBoldData = await rootBundle.load('assets/Fonts/Inter-SemiBold.ttf');
+  // final pw.Font fontBold = pw.Font.ttf(fontBoldData);
 
   final ByteData logoImageData = await rootBundle.load(
     'assets/images/logo-tcis-lisa-branca.png',
@@ -97,9 +89,8 @@ Future<String> generatePdf({
             (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime),
       );
 
-      print('Image loaded: ${imageData['timestamp']}');
     } else {
-      print('Image not found or invalid: ${imageData['timestamp']}');
+      // Image not found or invalid
     }
   }
 

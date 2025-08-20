@@ -233,37 +233,6 @@ class AdminDashboardScreen extends StatelessWidget {
                               },
                             ),
                           ),
-
-                          const SizedBox(height: 20),
-
-                          // Botão para ver todos os relatórios
-                          // SizedBox(
-                          //   width: double.infinity,
-                          //   height: 56,
-                          //   child: ElevatedButton.icon(
-                          //     onPressed: () => Navigator.push(
-                          //       context,
-                          //       MaterialPageRoute(
-                          //         builder: (context) => const AllReportsScreen(),
-                          //       ),
-                          //     ),
-                          //     style: ElevatedButton.styleFrom(
-                          //       backgroundColor: colorSecondary,
-                          //       foregroundColor: Colors.white,
-                          //       shape: RoundedRectangleBorder(
-                          //         borderRadius: BorderRadius.circular(15),
-                          //       ),
-                          //     ),
-                          //     icon: const Icon(Icons.assessment),
-                          //     label: const Text(
-                          //       'Ver Todos os Relatórios',
-                          //       style: TextStyle(
-                          //         fontSize: 18,
-                          //         fontWeight: FontWeight.w600,
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
                         ],
                       ),
                     ),
