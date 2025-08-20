@@ -1,60 +1,45 @@
-# 🚨 SOLUÇÃO PARA ERRO DO FLUTTER BUILD
+# 🚨 SOLUÇÃO DEFINITIVA PARA EASYPANEL
 
-## Problema Atual
-O Docker não consegue baixar o Flutter SDK devido a problemas de rede no servidor.
+## ⚠️ IMPORTANTE: Build Local Obrigatório
 
-## ✅ SOLUÇÃO RÁPIDA: Build Local + Deploy Estático
+O Dockerfile agora é **ESTÁTICO** - você DEVE fazer o build local antes do deploy.
 
-### Método 1: Build Local (RECOMENDADO)
+## ✅ PASSOS OBRIGATÓRIOS
 
-1. **Execute o script de build local:**
-   ```bash
-   ./build-static.sh
-   ```
+### 1. Build Local (OBRIGATÓRIO)
+```bash
+# Execute SEMPRE antes do deploy
+./build-static.sh
+```
 
-2. **No Easypanel:**
-   - Use `Dockerfile.static` em vez do `Dockerfile` principal
-   - Ou faça upload do arquivo `tcis-web-build.tar.gz`
+### 2. Commit e Push
+```bash
+git add .
+git commit -m "build: Adicionar arquivos web compilados"
+git push
+```
 
-3. **Deploy:**
-   ```bash
-   # Renomear Dockerfile
-   mv Dockerfile.static Dockerfile
-   
-   # Ou usar docker-compose estático
-   docker-compose -f docker-compose.static.yml up -d
-   ```
+### 3. Deploy no Easypanel
+Agora o Dockerfile simplesmente copia os arquivos já compilados.
 
-### Método 2: Deploy Apenas Backend
+## 🔧 Dockerfile Atual
+```dockerfile
+# DOCKERFILE ESTÁTICO - USE APENAS APÓS flutter build web
+FROM nginx:alpine
+COPY build/web /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
 
-Se o Flutter não funcionar, deploy apenas o backend:
+## 🚀 Alternativa: Deploy Manual
 
-1. **Crie serviço para backend:**
-   - Build Context: `/backend`
-   - Dockerfile: `backend/Dockerfile`
-   - Port: `3000`
-
-2. **Frontend: Use serviço estático**
-   - Upload manual dos arquivos `build/web/`
-   - Use nginx simples
-
-## 🔧 Dockerfiles Disponíveis
-
-- `Dockerfile` - Build completo com Flutter (problemático)
-- `Dockerfile.simple` - Versão com imagem oficial
-- `Dockerfile.static` - Apenas nginx com arquivos pré-construídos ✅
-
-## 🚀 Comandos Rápidos
+Se preferir, pode fazer deploy manual:
 
 ```bash
-# Build local e preparar
-./build-static.sh
-
-# Upload para servidor
-scp tcis-web-build.tar.gz user@servidor:/path/
-
-# No servidor
-tar -xzf tcis-web-build.tar.gz
+# No servidor Easypanel
+docker run -d -p 80:80 -v $(pwd)/build/web:/usr/share/nginx/html nginx:alpine
+```
 docker build -f Dockerfile.static -t tcis-web .
 docker run -d -p 80:80 tcis-web
 ```

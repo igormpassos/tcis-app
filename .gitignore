@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+# Exceto build/web para deploy estático
+!/build/web/
 
 # Symbolication related
 app.*.symbols

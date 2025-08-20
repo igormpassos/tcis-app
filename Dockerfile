@@ -1,26 +1,15 @@
-# Dockerfile principal para o frontend Flutter Web
-FROM cirrusci/flutter:3.19.6 as builder
-
-# Configurar Flutter para web
-RUN flutter config --enable-web --no-analytics
-RUN flutter precache --web
-
-# Copiar código Flutter
-WORKDIR /app
-COPY pubspec.yaml pubspec.lock ./
-RUN flutter pub get
-
-COPY . .
-
-# Build para web
-RUN flutter build web --release
-
-# Estágio de produção com nginx
+# DOCKERFILE ESTÁTICO - USE APENAS APÓS flutter build web
+# Execute: ./build-static.sh antes de fazer o deploy
 FROM nginx:alpine
-COPY --from=builder /app/build/web /usr/share/nginx/html
 
-# Configuração personalizada do nginx
+# Copiar arquivos web pré-construídos
+COPY build/web /usr/share/nginx/html
+
+# Copiar configuração nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Expor porta 80
 EXPOSE 80
+
+# Iniciar nginx
 CMD ["nginx", "-g", "daemon off;"]
