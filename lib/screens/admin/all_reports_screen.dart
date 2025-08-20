@@ -80,7 +80,6 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
         throw Exception(response['message'] ?? 'Erro desconhecido');
       }
     } catch (e) {
-      print('Erro ao carregar relatórios: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao carregar relatórios: $e')),
@@ -105,7 +104,6 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
         }
       }
     } catch (e) {
-      print('Erro ao carregar terminais: $e');
     }
   }
 
@@ -123,7 +121,6 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
         }
       }
     } catch (e) {
-      print('Erro ao carregar produtos: $e');
     }
   }
 
@@ -141,7 +138,6 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
         }
       }
     } catch (e) {
-      print('Erro ao carregar fornecedores: $e');
     }
   }
 
@@ -209,6 +205,40 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
       default:
         return Colors.grey;
     }
+  }
+
+  String _getDisplayProdutos(Map<String, dynamic> report) {
+    // Verificar se tem array de produtos (novo formato)
+    if (report['products'] != null && report['products'] is List) {
+      final productsList = report['products'] as List;
+      if (productsList.isNotEmpty) {
+        return productsList.map((p) => p['name'] ?? 'N/A').join('/');
+      }
+    }
+    
+    // Fallback para formato antigo
+    if (report['product'] != null) {
+      return report['product']['name'] ?? 'N/A';
+    }
+    
+    return 'N/A';
+  }
+
+  String _getDisplayFornecedores(Map<String, dynamic> report) {
+    // Verificar se tem array de fornecedores (novo formato)
+    if (report['suppliers'] != null && report['suppliers'] is List) {
+      final suppliersList = report['suppliers'] as List;
+      if (suppliersList.isNotEmpty) {
+        return suppliersList.map((s) => s['name'] ?? 'N/A').join('/');
+      }
+    }
+    
+    // Fallback para formato antigo
+    if (report['supplier'] != null) {
+      return report['supplier']['name'] ?? 'N/A';
+    }
+    
+    return 'N/A';
   }
 
   List<Map<String, dynamic>> get filteredReports {
@@ -452,9 +482,8 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
                                               const SizedBox(height: 4),
                                               Text('Usuário: ${report['user']?['name'] ?? 'N/A'}'),
                                               Text('Terminal: ${report['terminal']?['name'] ?? 'N/A'}'),
-                                              Text('Produto: ${report['product']?['name'] ?? 'N/A'}'),
-                                              if (report['supplier'] != null)
-                                                Text('Fornecedor: ${report['supplier']['name']}'),
+                                              Text('Fornecedores: ${_getDisplayFornecedores(report)}'),
+                                              Text('Produtos: ${_getDisplayProdutos(report)}'),
                                               if (report['createdAt'] != null)
                                                 Text(
                                                   'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(report['createdAt']))}',

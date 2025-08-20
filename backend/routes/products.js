@@ -105,7 +105,7 @@ router.get('/', [
             }
           },
           _count: {
-            select: { reports: true }
+            select: { suppliers: true }
           }
         }
       }),
@@ -234,7 +234,7 @@ router.get('/:id', [
           }
         },
         _count: {
-          select: { reports: true }
+          select: { suppliers: true }
         }
       }
     });
@@ -421,12 +421,7 @@ router.delete('/:id', requireRole('ADMIN'), [
 
     // Verificar se o produto existe
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        _count: {
-          select: { reports: true }
-        }
-      }
+      where: { id: parseInt(id) }
     });
 
     if (!product) {
@@ -436,8 +431,14 @@ router.delete('/:id', requireRole('ADMIN'), [
       });
     }
 
-    // Verificar se há relatórios associados
-    if (product._count.reports > 0) {
+    // Verificar se há relatórios associados - buscar por productIds
+    const reportsCount = await prisma.report.count({
+      where: {
+        productIds: { has: parseInt(id) }
+      }
+    });
+
+    if (reportsCount > 0) {
       return res.status(409).json({
         success: false,
         message: 'Não é possível excluir produto que possui relatórios associados'

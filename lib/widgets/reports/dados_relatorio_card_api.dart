@@ -4,6 +4,7 @@ import 'package:tcis_app/constants.dart';
 import '../../controllers/data_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../model/api_models.dart';
+import '../common/multi_select_dropdown.dart';
 
 class DadosRelatorioCardApi extends StatefulWidget {
   final TextEditingController prefixoController;
@@ -11,10 +12,10 @@ class DadosRelatorioCardApi extends StatefulWidget {
   final ValueChanged<String?> onTerminalChanged;
   final String? colaborador;
   final ValueChanged<String?> onColaboradorChanged;
-  final String? selectedProduto;
-  final ValueChanged<String?> onProdutoChanged;
-  final String? fornecedor;
-  final ValueChanged<String?> onFornecedorChanged;
+  final List<String> selectedProdutos;
+  final ValueChanged<List<String>> onProdutosChanged;
+  final List<String> selectedFornecedores;
+  final ValueChanged<List<String>> onFornecedoresChanged;
   final String? selectedCliente;
   final ValueChanged<String?> onClienteChanged;
   final bool isEditMode;
@@ -26,10 +27,10 @@ class DadosRelatorioCardApi extends StatefulWidget {
     required this.onTerminalChanged,
     required this.colaborador,
     required this.onColaboradorChanged,
-    required this.selectedProduto,
-    required this.onProdutoChanged,
-    required this.fornecedor,
-    required this.onFornecedorChanged,
+    required this.selectedProdutos,
+    required this.onProdutosChanged,
+    required this.selectedFornecedores,
+    required this.onFornecedoresChanged,
     required this.selectedCliente,
     required this.onClienteChanged,
     this.isEditMode = false,
@@ -340,118 +341,86 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
 
             const SizedBox(height: 16),
             
-            // Fornecedor Selector com design original
-            const Text('Fornecedor *'),
+            // Fornecedor Multi-Select
+            const Text('Fornecedores *'),
             Consumer<DataController>(
               builder: (context, dataController, child) {
                 if (dataController.isLoadingSuppliers) {
-                  return DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      hintText: "Carregando fornecedores...",
-                      hintStyle: TextStyle(color: LabelColor),
-                    ),
-                    items: const [],
-                    onChanged: null,
-                  );
+                  return const CircularProgressIndicator();
                 }
 
-                final fornecedores = dataController.suppliers.map((s) => s.name).toList();
-                //fornecedores.add('Outro');
+                final fornecedoresDisponiveis = dataController.suppliers
+                    .where((s) => s.active)
+                    .toList();
 
-                return DropdownButtonFormField<String>(
-                  value: fornecedores.contains(widget.fornecedor) ? widget.fornecedor : null,
-                  hint: Text("Selecione uma opção", style: TextStyle(color: LabelColor)),
-                  style: TextStyle(fontSize: 15, color: TextDarkColor),
-                  borderRadius: BorderRadius.circular(15),
-                  dropdownColor: backgroundColorLight.withAlpha(230),
-                  onChanged: (value) {
-                    if (value == 'Outro') {
-                      _showCustomDialog(
-                        context,
-                        title: 'Qual o Fornecedor?',
-                        onSubmit: (custom) => widget.onFornecedorChanged(custom),
-                      );
-                    } else {
-                      // Reset product when supplier changes
-                      selectedSupplierObj = dataController.suppliers.firstWhere((s) => s.name == value);
-                      selectedProductObj = null;
-                      widget.onFornecedorChanged(value);
-                      widget.onProdutoChanged(null); // Reset product selection
-                    }
+                return MultiSelectDropdown<Supplier>(
+                  items: fornecedoresDisponiveis,
+                  selectedItems: fornecedoresDisponiveis
+                      .where((s) => widget.selectedFornecedores.contains(s.name))
+                      .toList(),
+                  onSelectionChanged: (List<Supplier> selected) {
+                    final selectedNames = selected.map((s) => s.name).toList();
+                    widget.onFornecedoresChanged(selectedNames);
+                    
+                    // Reset product selection quando fornecedores mudam
+                    widget.onProdutosChanged([]);
                   },
-                  items: fornecedores.map((fornecedor) {
-                    return DropdownMenuItem<String>(
-                      value: fornecedor,
-                      child: Text(fornecedor),
-                    );
-                  }).toList(),
-                  validator: (value) => (widget.fornecedor?.isEmpty ?? true) ? 'Campo obrigatório' : null,
+                  displayText: (supplier) => supplier.name,
+                  hintText: "Selecione um ou mais fornecedores",
+                  validator: (value) => 
+                      (value == null || value.isEmpty) ? 'Campo obrigatório' : null,
                 );
               },
             ),
 
             const SizedBox(height: 16),
             
-            // Produto Selector com design original (filtrado pelo fornecedor)
-            const Text('Produto *'),
+            // Produto Multi-Select (filtrado pelos fornecedores selecionados)
+            const Text('Produtos *'),
             Consumer<DataController>(
               builder: (context, dataController, child) {
                 if (dataController.isLoadingProducts) {
-                  return DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      hintText: "Carregando produtos...",
-                      hintStyle: TextStyle(color: LabelColor),
-                    ),
-                    items: const [],
-                    onChanged: null,
-                  );
+                  return const CircularProgressIndicator();
                 }
 
-                // Filtrar produtos pelo fornecedor selecionado
+                // Filtrar produtos pelos fornecedores selecionados
                 List<Product> availableProducts = [];
-                if (selectedSupplierObj != null) {
-                  availableProducts = dataController
-                      .getProductsBySupplier(selectedSupplierObj!.id)
-                      .where((product) => product.active)
+                if (widget.selectedFornecedores.isNotEmpty) {
+                  final selectedSupplierIds = dataController.suppliers
+                      .where((s) => widget.selectedFornecedores.contains(s.name))
+                      .map((s) => s.id)
                       .toList();
+                  
+                  for (final supplierId in selectedSupplierIds) {
+                    availableProducts.addAll(
+                      dataController.getProductsBySupplier(supplierId)
+                          .where((product) => product.active)
+                    );
+                  }
+                  // Remove duplicatas
+                  availableProducts = availableProducts.toSet().toList();
                 } else {
                   availableProducts = dataController.products
                       .where((product) => product.active)
                       .toList();
                 }
 
-                final produtos = availableProducts.map((p) => p.name).toList();
-                //produtos.add('Outro');
-
-                return DropdownButtonFormField<String>(
-                  value: produtos.contains(widget.selectedProduto) ? widget.selectedProduto : null,
-                  hint: Text(
-                    selectedSupplierObj != null 
-                        ? "Selecione um produto (${availableProducts.length} disponíveis)"
-                        : "Selecione um fornecedor primeiro", 
-                    style: TextStyle(color: LabelColor)
-                  ),
-                  style: TextStyle(fontSize: 15, color: TextDarkColor),
-                  borderRadius: BorderRadius.circular(15),
-                  dropdownColor: backgroundColorLight.withAlpha(230),
-                  onChanged: availableProducts.isEmpty ? null : (value) {
-                    if (value == 'Outro') {
-                      _showCustomDialog(
-                        context,
-                        title: 'Qual o Produto?',
-                        onSubmit: (custom) => widget.onProdutoChanged(custom),
-                      );
-                    } else {
-                      widget.onProdutoChanged(value);
-                    }
+                return MultiSelectDropdown<Product>(
+                  items: availableProducts,
+                  selectedItems: availableProducts
+                      .where((p) => widget.selectedProdutos.contains(p.name))
+                      .toList(),
+                  onSelectionChanged: (List<Product> selected) {
+                    final selectedNames = selected.map((p) => p.name).toList();
+                    widget.onProdutosChanged(selectedNames);
                   },
-                  items: produtos.map((produto) {
-                    return DropdownMenuItem<String>(
-                      value: produto,
-                      child: Text(produto),
-                    );
-                  }).toList(),
-                  validator: (value) => (widget.selectedProduto?.isEmpty ?? true) ? 'Campo obrigatório' : null,
+                  displayText: (product) => product.name,
+                  hintText: widget.selectedFornecedores.isNotEmpty 
+                      ? "Selecione um ou mais produtos (${availableProducts.length} disponíveis)"
+                      : "Selecione fornecedores primeiro",
+                  validator: (value) => 
+                      (value == null || value.isEmpty) ? 'Campo obrigatório' : null,
+                  enabled: widget.selectedFornecedores.isNotEmpty,
                 );
               },
             ),

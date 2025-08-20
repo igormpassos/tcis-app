@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:tcis_app/model/full_report_model.dart';
+import 'package:tcis_app/model/api_models.dart';
 import 'package:tcis_app/services/api_service.dart';
 import 'package:tcis_app/controllers/data_controller.dart';
 import 'package:tcis_app/services/image_upload_service.dart';
@@ -22,12 +23,28 @@ class ReportApiService {
     final terminal = dataController.terminals
         .where((t) => '${t.code} - ${t.name}' == report.terminal)
         .firstOrNull;
-    final product = dataController.products
-        .where((p) => p.name == report.produto)
-        .firstOrNull;
-    final supplier = dataController.suppliers
-        .where((s) => s.name == report.fornecedor)
-        .firstOrNull;
+    
+    // Buscar múltiplos produtos baseados nas listas
+    final products = report.produtos.isNotEmpty 
+        ? dataController.products
+            .where((p) => report.produtos.contains(p.name))
+            .toList()
+        : (report.produto.isNotEmpty 
+            ? [dataController.products
+                .where((p) => p.name == report.produto)
+                .firstOrNull].where((p) => p != null).cast<Product>().toList()
+            : []);
+    
+    // Buscar múltiplos fornecedores baseados nas listas
+    final suppliers = report.fornecedores.isNotEmpty 
+        ? dataController.suppliers
+            .where((s) => report.fornecedores.contains(s.name))
+            .toList()
+        : (report.fornecedor != null && report.fornecedor!.isNotEmpty 
+            ? [dataController.suppliers
+                .where((s) => s.name == report.fornecedor)
+                .firstOrNull].where((s) => s != null).cast<Supplier>().toList()
+            : []);
 
     // Buscar ID do colaborador pelo nome
     final employee = dataController.users
@@ -60,8 +77,8 @@ class ReportApiService {
     final payload = {
       'prefix': report.prefixo,
       'terminalId': terminal?.id,
-      'productId': product?.id,
-      'supplierId': supplier?.id,
+      'productIds': products.map((p) => p.id).toList(),
+      'supplierIds': suppliers.map((s) => s.id).toList(),
       'clientId': client?.id,
       // Enviar userId do colaborador selecionado (se diferente do logado)
       'employeeUserId': employee?.id,
@@ -81,28 +98,6 @@ class ReportApiService {
       'imagePaths': imagePaths ?? [],
     };
 
-    // Log do payload para debug
-    print('=== PAYLOAD DEBUG ===');
-    print('Report data mapping:');
-    print('prefixo: ${report.prefixo}');
-    print('terminal: ${report.terminal} → ID: ${terminal?.id}');
-    print('produto: ${report.produto} → ID: ${product?.id}');
-    print('fornecedor: ${report.fornecedor} → ID: ${supplier?.id}');
-    print('cliente: ${report.cliente} → ID: ${client?.id}');
-    print('colaborador: ${report.colaborador} → ID: ${employee?.id}');
-    print('dataInicio: ${report.dataInicio}');
-    print('horarioInicio: ${report.horarioInicio}');
-    print('dataTermino: ${report.dataTermino}');
-    print('horarioTermino: ${report.horarioTermino}');
-    print('horarioChegada: ${report.horarioChegada}');
-    print('horarioSaida: ${report.horarioSaida}');
-    print('startDateTime: ${DateTimeUtils.toIsoString(startDateTime)}');
-    print('endDateTime: ${DateTimeUtils.toIsoString(endDateTime)}');
-    print('arrivalDateTime: ${DateTimeUtils.toIsoString(arrivalDateTime)}');
-    print('departureDateTime: ${DateTimeUtils.toIsoString(departureDateTime)}');
-    print('Full payload: ${jsonEncode(payload)}');
-    print('==================');
-
     return payload;
   }
 
@@ -117,16 +112,8 @@ class ReportApiService {
     List<File>? imageFiles,
   }) async {
     try {
-      print('Iniciando envio do relatório...');
-      
       // PASSO 1: Salvar relatório básico no banco (sem PDF ainda)
       final reportData = _mapReportToApi(report, dataController);
-      
-      print('=== FAZENDO REQUISIÇÃO API ===');
-      print('Endpoint: /reports');
-      print('Method: POST');
-      print('Data: ${jsonEncode(reportData)}');
-      print('============================');
       
       final createResponse = await ApiService.request(
         endpoint: '/reports',
@@ -135,18 +122,6 @@ class ReportApiService {
       );
       
       if (createResponse['success'] != true) {
-        // Log detalhado do erro para debug
-        print('=== ERRO DETALHADO DA API ===');
-        print('Response completo: ${jsonEncode(createResponse)}');
-        print('Message: ${createResponse['message']}');
-        if (createResponse['errors'] != null) {
-          print('Validation errors: ${jsonEncode(createResponse['errors'])}');
-          for (var error in createResponse['errors']) {
-            print('  - Campo: ${error['field']}, Erro: ${error['message']}, Valor: ${error['value']}');
-          }
-        }
-        print('============================');
-        
         // Criar mensagem de erro mais detalhada
         String errorMessage = createResponse['message'] ?? 'Erro desconhecido';
         if (createResponse['errors'] != null && createResponse['errors'].isNotEmpty) {
@@ -160,13 +135,10 @@ class ReportApiService {
       
       final reportId = createResponse['data']['id'];
       final serverPrefix = createResponse['data']['prefix'] ?? report.prefixo;
-      print('Relatório salvo com ID: $reportId');
-      print('Prefixo retornado do servidor: $serverPrefix');
       
       // PASSO 2: Upload das imagens
       List<String> imageUrls = [];
       if (imageFiles != null && imageFiles.isNotEmpty) {
-        print('Fazendo upload de ${imageFiles.length} imagens...');
         // Usar prefixo do servidor + ID do relatório para nome da pasta
         final folderName = '$serverPrefix-$reportId';
         
@@ -176,11 +148,9 @@ class ReportApiService {
           folderName: folderName,
         );
         
-        print('Upload de imagens concluído. URLs: ${imageUrls.length}');
       }
       
       // PASSO 3: Gerar PDF com as imagens já no servidor usando o prefixo correto
-      print('Gerando PDF com prefixo: $serverPrefix');
       
       // Criar uma cópia do relatório com o prefixo atualizado do servidor
       final reportWithServerPrefix = FullReportModel.fromJson({
@@ -192,7 +162,6 @@ class ReportApiService {
       final generatedPdfFile = File(pdfPath);
       
       // PASSO 4: Upload do PDF (usando a mesma pasta das imagens)
-      print('Fazendo upload do PDF...');
       final folderName = '$serverPrefix-$reportId';
       final pdfUrl = await ImageUploadService.uploadPdf(
         pdfFile: generatedPdfFile,
@@ -203,7 +172,6 @@ class ReportApiService {
       if (pdfUrl.isEmpty) {
         throw Exception('Falha no upload do PDF');
       }
-      print('PDF enviado com sucesso. URL: $pdfUrl');
       
       // PASSO 5: Atualizar relatório com URL do PDF e status final
       final updateResponse = await ApiService.request(
@@ -217,10 +185,8 @@ class ReportApiService {
       );
       
       if (updateResponse['success'] != true) {
-        print('Aviso: Falha ao atualizar URL do PDF: ${updateResponse['message']}');
       }
       
-      print('Relatório enviado com sucesso!');
       
       return {
         'success': true,
@@ -233,7 +199,6 @@ class ReportApiService {
       };
       
     } catch (e) {
-      print('Erro ao enviar relatório: $e');
       return {
         'success': false,
         'message': 'Erro ao enviar relatório: $e',
@@ -247,7 +212,6 @@ class ReportApiService {
     FullReportModel report, 
     List<String> serverImageUrls
   ) async {
-    print('Baixando imagens do servidor para o PDF...');
     final tempImages = <Map<String, dynamic>>[];
     final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
     
@@ -255,7 +219,6 @@ class ReportApiService {
     for (int i = 0; i < serverImageUrls.length; i++) {
       try {
         final imageUrl = '$baseUrl/${serverImageUrls[i]}';
-        print('Baixando imagem: $imageUrl');
         
         // Fazer requisição HTTP para baixar a imagem
         final response = await http.get(Uri.parse(imageUrl));
@@ -271,22 +234,20 @@ class ReportApiService {
             'timestamp': DateTime.now().add(Duration(seconds: i)), // Timestamps diferentes
           });
           
-          print('Imagem $i baixada com sucesso');
         } else {
-          print('Erro ao baixar imagem $i: ${response.statusCode}');
         }
       } catch (e) {
-        print('Erro ao processar imagem $i: $e');
       }
     }
     
-    print('Total de imagens processadas: ${tempImages.length}');
     
     // Gerar PDF com as imagens baixadas
     final pdfPath = await generatePdf(
       prefixoController: TextEditingController(text: report.prefixo),
       selectedTerminal: report.terminal,
       selectedProduto: report.produto,
+      selectedProdutos: report.produtos.isNotEmpty ? report.produtos : null,
+      selectedFornecedores: report.fornecedores.isNotEmpty ? report.fornecedores : null,
       selectedVagao: null, // Campo removido
       colaborador: report.colaborador,
       fornecedor: report.fornecedor,
@@ -315,7 +276,6 @@ class ReportApiService {
           await file.delete();
         }
       } catch (e) {
-        print('Erro ao deletar arquivo temporário: $e');
       }
     }
     
@@ -364,7 +324,6 @@ class ReportApiService {
         );
       } else if (imagePaths.isNotEmpty) {
         // Gerar PDF temporário se há imagens (será regenerado após a atualização)
-        print('Gerando PDF temporário para atualização...');
         final tempPdfPath = await _generatePdfWithServerImages(report, imagePaths);
         final generatedPdfFile = File(tempPdfPath);
         
@@ -393,10 +352,12 @@ class ReportApiService {
       // Garantir que o novo PDF URL seja enviado
       if (pdfPath != null && pdfPath.isNotEmpty) {
         reportData['pdf_url'] = pdfPath;
-        print('📄 Atualizando PDF URL: $pdfPath');
       }
 
       await _apiService.loadToken();
+      
+      // DEBUG: Log do payload da edição
+      
       final response = await _apiService.put('/reports/$reportId', reportData);
 
       if (response.statusCode == 200) {
@@ -407,7 +368,6 @@ class ReportApiService {
           
           // SEMPRE regenerar PDF após qualquer atualização se há imagens ou PDF
           if (pdfFile != null || imagePaths.isNotEmpty) {
-            print('🔄 Regenerando PDF após atualização do relatório...');
             
             // Criar uma cópia do report com dados atualizados (incluindo novo prefixo se houver)
             final reportWithUpdatedData = FullReportModel.fromJson({
@@ -427,7 +387,6 @@ class ReportApiService {
             
             // Atualizar o PDF URL no backend
             await _apiService.put('/reports/$reportId', {'pdf_url': finalPdfPath});
-            print('✅ PDF regenerado após atualização: $finalPdfPath');
             
             // Atualizar dados de retorno com o novo PDF
             updatedReport['pdfUrl'] = finalPdfPath;
@@ -445,7 +404,6 @@ class ReportApiService {
         throw Exception('Erro HTTP: ${response.statusCode}');
       }
     } catch (e) {
-      print('Erro ao atualizar relatório: $e');
       rethrow;
     }
   }
@@ -484,7 +442,6 @@ class ReportApiService {
         throw Exception('Erro HTTP: ${response.statusCode}');
       }
     } catch (e) {
-      print('Erro ao buscar relatórios: $e');
       rethrow;
     }
   }

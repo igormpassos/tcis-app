@@ -16,13 +16,19 @@ class SecondaryreportCard extends StatelessWidget {
     this.colorl = const Color(0xFF003C92),
     this.status = "",
     this.onEdit,
+    // Novos campos para listas
+    this.fornecedores = const [],
+    this.produtos = const [],
   });
 
   final String title, iconSrc, data, usuario, fornecedor, produto, terminal, status;
   final Color colorl;
   final VoidCallback? onEdit;
-
   final dynamic pathPdf;
+  
+  // Novos campos multi-select
+  final List<String> fornecedores;
+  final List<String> produtos;
 
   Color _getStatusColor() {
     switch (status) {
@@ -88,7 +94,7 @@ class SecondaryreportCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$terminal • $fornecedor • $produto',
+                  '$terminal • ${_getDisplayFornecedores()} • ${_getDisplayProdutos()}',
                   style: const TextStyle(
                     color: Colors.white60,
                     fontSize: 14,
@@ -188,5 +194,20 @@ class SecondaryreportCard extends StatelessWidget {
         ],
       ),
     );
+  }
+  
+  // Métodos helper para exibir listas
+  String _getDisplayFornecedores() {
+    if (fornecedores.isNotEmpty) {
+      return fornecedores.join('/');
+    }
+    return fornecedor.isNotEmpty ? fornecedor : 'N/A';
+  }
+  
+  String _getDisplayProdutos() {
+    if (produtos.isNotEmpty) {
+      return produtos.join('/');
+    }
+    return produto.isNotEmpty ? produto : 'N/A';
   }
 }

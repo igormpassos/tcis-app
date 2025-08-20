@@ -46,6 +46,9 @@ Future<String> generatePdf({
   required String? colaborador,
   required String? fornecedor,
   required String? selectedValue,
+  // Novos parâmetros para listas multi-select
+  List<String>? selectedProdutos,
+  List<String>? selectedFornecedores,
   required TextEditingController dataInicioController,
   required TextEditingController horarioChegadaController,
   required TextEditingController horarioInicioController,
@@ -289,7 +292,7 @@ Future<String> generatePdf({
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     pw.SizedBox(width: 5),
-                    pw.Text(fornecedor ?? ''),
+                    pw.Text(_getDisplayFornecedores(selectedFornecedores, fornecedor)),
                   ],
                 ),
                 pw.Row(
@@ -299,7 +302,7 @@ Future<String> generatePdf({
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     pw.SizedBox(width: 5),
-                    pw.Text(selectedProduto ?? ''),
+                    pw.Text(_getDisplayProdutos(selectedProdutos, selectedProduto)),
                   ],
                 ),
                 pw.Row(
@@ -665,4 +668,19 @@ Future<String> generatePdf({
 
   // Retornar o caminho do arquivo PDF gerado
   return filePath;
+}
+
+// Funções helper para exibir listas no PDF
+String _getDisplayFornecedores(List<String>? fornecedores, String? fornecedor) {
+  if (fornecedores != null && fornecedores.isNotEmpty) {
+    return fornecedores.join(' / ');
+  }
+  return fornecedor ?? '';
+}
+
+String _getDisplayProdutos(List<String>? produtos, String? produto) {
+  if (produtos != null && produtos.isNotEmpty) {
+    return produtos.join(' / ');
+  }
+  return produto ?? '';
 }

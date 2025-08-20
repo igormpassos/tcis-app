@@ -47,12 +47,17 @@ class _EditReportScreenState extends State<EditReportScreen> {
   final TextEditingController observacoesController = TextEditingController();
 
   String? selectedTerminal;
-  String? selectedProduto;
+  String? selectedProduto; // DEPRECATED - usar selectedProdutos
   String? selectedVagao;
   String? colaborador;
-  String? fornecedor;
+  String? fornecedor; // DEPRECATED - usar selectedFornecedores
   String? selectedCliente;
   String? selectedValue;
+  
+  // Novos campos multi-select
+  List<String> selectedProdutos = [];
+  List<String> selectedFornecedores = [];
+  
   bool? houveContaminacao;
   String contaminacaoDescricao = '';
   String? materialHomogeneo;
@@ -122,6 +127,21 @@ class _EditReportScreenState extends State<EditReportScreen> {
     fornecedor = r.fornecedor;
     selectedCliente = r.cliente;
     selectedValue = null; // Campo removido
+    
+    // Inicializar listas multi-select com dados existentes
+    if (r.produtos.isNotEmpty) {
+      selectedProdutos = List.from(r.produtos);
+    } else if (r.produto.isNotEmpty) {
+      // Fallback para compatibilidade com dados antigos
+      selectedProdutos = [r.produto];
+    }
+    
+    if (r.fornecedores.isNotEmpty) {
+      selectedFornecedores = List.from(r.fornecedores);
+    } else if (r.fornecedor != null && r.fornecedor!.isNotEmpty) {
+      // Fallback para compatibilidade com dados antigos
+      selectedFornecedores = [r.fornecedor!];
+    }
     
     // Converter datas para formato brasileiro (dd/MM/yyyy) se necessário
     dataInicioController.text = _convertToBrazilianDate(r.dataInicio);
@@ -249,9 +269,9 @@ class _EditReportScreenState extends State<EditReportScreen> {
     final updatedReport = widget.report.copyWith(
       prefixo: prefixoController.text,
       terminal: selectedTerminal ?? '',
-      produto: selectedProduto ?? '',
+      produto: selectedProdutos.isNotEmpty ? selectedProdutos.first : (selectedProduto ?? ''),
       colaborador: colaborador ?? '',
-      fornecedor: fornecedor ?? '',
+      fornecedor: selectedFornecedores.isNotEmpty ? selectedFornecedores.first : (fornecedor ?? ''),
       cliente: selectedCliente ?? '',
       dataInicio: dataInicioController.text,
       horarioInicio: horarioInicioController.text,
@@ -270,6 +290,9 @@ class _EditReportScreenState extends State<EditReportScreen> {
         img['file'] != null ? img['file'].path.toString() : (img['url'] ?? '')
       ).toList(),
       status: 0,
+      // Atualizar as listas multi-select
+      produtos: selectedProdutos,
+      fornecedores: selectedFornecedores,
     );
 
     final existing = prefs.getStringList('full_reports') ?? [];
@@ -291,9 +314,9 @@ class _EditReportScreenState extends State<EditReportScreen> {
       final updatedReport = widget.report.copyWith(
         prefixo: prefixoController.text,
         terminal: selectedTerminal ?? '',
-        produto: selectedProduto ?? '',
+        produto: selectedProdutos.isNotEmpty ? selectedProdutos.first : (selectedProduto ?? ''),
         colaborador: colaborador ?? '',
-        fornecedor: fornecedor ?? '',
+        fornecedor: selectedFornecedores.isNotEmpty ? selectedFornecedores.first : (fornecedor ?? ''),
         cliente: selectedCliente ?? '',
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
@@ -309,6 +332,8 @@ class _EditReportScreenState extends State<EditReportScreen> {
         fornecedorAcompanhou: fornecedorAcompanhou ?? '',
         observacoes: observacoesController.text,
         status: 0, // Rascunho
+        produtos: selectedProdutos,
+        fornecedores: selectedFornecedores,
       );
 
       final dataController = Provider.of<DataController>(context, listen: false);
@@ -365,9 +390,9 @@ class _EditReportScreenState extends State<EditReportScreen> {
       final updatedBase = widget.report.copyWith(
         prefixo: prefixoController.text,
         terminal: selectedTerminal ?? '',
-        produto: selectedProduto ?? '',
+        produto: selectedProdutos.isNotEmpty ? selectedProdutos.first : (selectedProduto ?? ''),
         colaborador: colaborador ?? '',
-        fornecedor: fornecedor ?? '',
+        fornecedor: selectedFornecedores.isNotEmpty ? selectedFornecedores.first : (fornecedor ?? ''),
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
         dataTermino: dataTerminoController.text,
@@ -385,17 +410,22 @@ class _EditReportScreenState extends State<EditReportScreen> {
           img['file'] != null ? img['file'].path.toString() : (img['url'] ?? '')
         ).toList(),
         status: 1,
+        produtos: selectedProdutos,
+        fornecedores: selectedFornecedores,
         dataCriacao: DateTime.now(),
       );
 
       final pdfPath = await generatePdf(
         prefixoController: prefixoController,
         selectedTerminal: selectedTerminal,
-        selectedProduto: selectedProduto,
+        selectedProduto: selectedProdutos.isNotEmpty ? selectedProdutos.first : selectedProduto,
         selectedVagao: selectedVagao,
         colaborador: colaborador,
-        fornecedor: fornecedor,
+        fornecedor: selectedFornecedores.isNotEmpty ? selectedFornecedores.first : fornecedor,
         selectedValue: selectedValue,
+        // Passar as listas para o PDF
+        selectedProdutos: selectedProdutos,
+        selectedFornecedores: selectedFornecedores,
         dataInicioController: dataInicioController,
         horarioChegadaController: horarioChegadaController,
         horarioInicioController: horarioInicioController,
@@ -505,9 +535,9 @@ class _EditReportScreenState extends State<EditReportScreen> {
       final updatedReport = widget.report.copyWith(
         prefixo: prefixoController.text,
         terminal: selectedTerminal ?? '',
-        produto: selectedProduto ?? '',
+        produto: selectedProdutos.isNotEmpty ? selectedProdutos.first : (selectedProduto ?? ''),
         colaborador: colaborador ?? '',
-        fornecedor: fornecedor ?? '',
+        fornecedor: selectedFornecedores.isNotEmpty ? selectedFornecedores.first : (fornecedor ?? ''),
         cliente: selectedCliente ?? '',
         dataInicio: dataInicioController.text,
         horarioInicio: horarioInicioController.text,
@@ -524,6 +554,8 @@ class _EditReportScreenState extends State<EditReportScreen> {
         observacoes: observacoesController.text,
         status: 1, // Status finalizado
         dataCriacao: DateTime.now(),
+        produtos: selectedProdutos,
+        fornecedores: selectedFornecedores,
       );
 
       final dataController = context.read<DataController>();
@@ -738,12 +770,22 @@ class _EditReportScreenState extends State<EditReportScreen> {
                   colaborador: colaborador,
                   onColaboradorChanged:
                       (val) => setState(() => colaborador = val),
-                  selectedProduto: selectedProduto,
-                  onProdutoChanged:
-                      (val) => setState(() => selectedProduto = val),
-                  fornecedor: fornecedor,
-                  onFornecedorChanged:
-                      (val) => setState(() => fornecedor = val),
+                  selectedProdutos: selectedProdutos,
+                  onProdutosChanged: (produtos) {
+                    setState(() {
+                      selectedProdutos = produtos;
+                      // Manter compatibilidade com campo legado
+                      selectedProduto = produtos.isNotEmpty ? produtos.first : null;
+                    });
+                  },
+                  selectedFornecedores: selectedFornecedores,
+                  onFornecedoresChanged: (fornecedores) {
+                    setState(() {
+                      selectedFornecedores = fornecedores;
+                      // Manter compatibilidade com campo legado
+                      fornecedor = fornecedores.isNotEmpty ? fornecedores.first : null;
+                    });
+                  },
                   selectedCliente: selectedCliente,
                   onClienteChanged:
                       (val) => setState(() => selectedCliente = val),

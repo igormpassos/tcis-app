@@ -102,7 +102,11 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   // Controllers and variables to store form data
   final TextEditingController prefixoController = TextEditingController();
   String? selectedTerminal;
-  String? selectedProduto;
+  String? selectedProduto; // DEPRECATED - usar selectedProdutos
+  
+  // Novos campos multi-select
+  List<String> selectedProdutos = [];
+  List<String> selectedFornecedores = [];
   String? selectedVagao;
   String? colaborador;
   String? fornecedor;
@@ -138,11 +142,14 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         await generatePdf(
           prefixoController: prefixoController,
           selectedTerminal: selectedTerminal,
-          selectedProduto: selectedProduto,
+          selectedProduto: selectedProduto ?? '',
           selectedVagao: selectedVagao,
           colaborador: colaborador,
-          fornecedor: fornecedor,
+          fornecedor: fornecedor ?? '',
           selectedValue: selectedValue,
+          // Passar as listas para o PDF
+          selectedProdutos: selectedProdutos,
+          selectedFornecedores: selectedFornecedores,
           dataInicioController: dataInicioController,
           horarioChegadaController: horarioChegadaController,
           horarioInicioController: horarioInicioController,
@@ -252,6 +259,9 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         pathPdf: '',
         dataCriacao: DateTime.now(),
         status: 1, // Finalizado
+        // Adicionar as listas multi-select
+        produtos: selectedProdutos,
+        fornecedores: selectedFornecedores,
       );
 
       final dataController = context.read<DataController>();
@@ -360,6 +370,9 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       pathPdf: '', // ainda não foi gerado
       dataCriacao: DateTime.now(),
       status: 0, // Rascunho (local apenas)
+      // Adicionar as listas multi-select
+      produtos: selectedProdutos,
+      fornecedores: selectedFornecedores,
     );
 
     final savedReports = prefs.getStringList('full_reports') ?? [];
@@ -405,12 +418,18 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                     colaborador: colaborador,
                     onColaboradorChanged:
                         (val) => setState(() => colaborador = val),
-                    selectedProduto: selectedProduto,
-                    onProdutoChanged:
-                        (val) => setState(() => selectedProduto = val),
-                    fornecedor: fornecedor,
-                    onFornecedorChanged:
-                        (val) => setState(() => fornecedor = val),
+                    selectedProdutos: selectedProdutos,
+                    onProdutosChanged:
+                        (val) => setState(() {
+                          selectedProdutos = val;
+                          selectedProduto = val.isNotEmpty ? val.first : null;
+                        }),
+                    selectedFornecedores: selectedFornecedores,
+                    onFornecedoresChanged:
+                        (val) => setState(() {
+                          selectedFornecedores = val;
+                          fornecedor = val.isNotEmpty ? val.first : null;
+                        }),
                     selectedCliente: selectedCliente,
                     onClienteChanged:
                         (val) => setState(() => selectedCliente = val),

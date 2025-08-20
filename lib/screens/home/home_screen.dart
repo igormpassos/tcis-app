@@ -69,29 +69,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
 
     try {
-      print('🔍 DEBUG: Carregando relatórios do servidor...');
       
       final reports = await ReportApiService.getReports(
         page: 1,
         limit: 50,
       );
       
-      print('🔍 DEBUG: Server reports response count: ${reports.length}');
       
       for (int i = 0; i < reports.length && i < 3; i++) {
         final report = reports[i];
-        print('📊 DEBUG: Report $i structure:');
-        print('   ID: ${report['id']}');
-        print('   Prefix: ${report['prefix']}');
-        print('   Status: ${report['status']}');
-        print('   Terminal: ${report['terminal']}');
-        print('   Product: ${report['product']}');
-        print('   Employee: ${report['employee']}');
-        print('   Images: ${report['images']}');
-        print('   ImageUrls: ${report['imageUrls']}');
-        print('   PdfUrl: ${report['pdfUrl']}');
-        print('   Full report: ${report.toString().substring(0, 200)}...');
-        print('');
       }
 
       if (mounted) {
@@ -101,7 +87,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         });
       }
     } catch (e) {
-      print('Erro ao carregar relatórios do servidor: $e');
       if (mounted) {
         setState(() {
           serverReports = [];
@@ -123,7 +108,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void _editServerReport(Map<String, dynamic> report) async {
     try {
       // Buscar dados atualizados do servidor antes de abrir a edição
-      print('🔄 Buscando dados atualizados do relatório ${report['id']}...');
       
       // Recarregar dados do servidor para ter certeza que estão atualizados
       await loadServerReports();
@@ -150,7 +134,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         await forceRefresh(); // Usar método unificado de refresh
       }
     } catch (e) {
-      print('Erro ao abrir edição: $e');
       
       // Fallback: usar dados originais se houver erro
       try {
@@ -166,7 +149,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           await forceRefresh();
         }
       } catch (fallbackError) {
-        print('Erro no fallback: $fallbackError');
         
         // Mostrar diálogo de erro apenas se ambas as tentativas falharem
         if (mounted) {
@@ -430,6 +412,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       fornecedor: report['supplier']?['name'] ?? 'N/A',
                       produto: report['product']?['name'] ?? 'N/A',
                       terminal: report['terminal']?['code'] ?? 'N/A',
+                      // Novos campos de listas
+                      fornecedores: report['suppliers'] != null 
+                          ? List<String>.from(report['suppliers'].map((s) => s['name']))
+                          : [],
+                      produtos: report['products'] != null 
+                          ? List<String>.from(report['products'].map((p) => p['name']))
+                          : [],
                       pathPdf: report['pdfUrl'] != null && (report['pdfUrl'] as String).isNotEmpty
                           ? (report['pdfUrl'] as String).startsWith('http')
                               ? report['pdfUrl'] // Já é URL completa

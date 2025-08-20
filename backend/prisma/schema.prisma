@@ -38,33 +38,31 @@ model Terminal {
 }
 
 model Product {
-  id          Int               @id @default(autoincrement())
-  name        String            @unique
-  code        String?           @unique
-  description String?
-  category    String?
-  active      Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  suppliers   ProductSupplier[]
-  reports     Report[]
+  id            Int               @id @default(autoincrement())
+  name          String            @unique
+  code          String?           @unique
+  description   String?
+  category      String?
+  active        Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  suppliers     ProductSupplier[]
 
   @@map("products")
 }
 
 model Supplier {
-  id        Int               @id @default(autoincrement())
-  name      String            @unique
-  code      String?           @unique
-  contact   String?
-  email     String?
-  phone     String?
-  address   String?
-  active    Boolean           @default(true)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  products  ProductSupplier[]
-  reports   Report[]
+  id              Int               @id @default(autoincrement())
+  name            String            @unique
+  code            String?           @unique
+  contact         String?
+  email           String?
+  phone           String?
+  address         String?
+  active          Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  products        ProductSupplier[]
 
   @@map("suppliers")
 }
@@ -100,9 +98,9 @@ model Report {
   prefix                   String
   status                   Int       @default(0)
   terminalId               Int?
-  productId                Int?
-  supplierId               Int?
   userId                   Int
+  productIds               Int[]     // Array de IDs dos produtos
+  supplierIds              Int[]     // Array de IDs dos fornecedores
   hasContamination         Boolean?
   contaminationDescription String?
   homogeneousMaterial      String?
@@ -121,8 +119,6 @@ model Report {
   createdBy                Int       @default(1)
   clientId                 Int?
   client                   Client?   @relation(fields: [clientId], references: [id])
-  product                  Product?  @relation(fields: [productId], references: [id])
-  supplier                 Supplier? @relation(fields: [supplierId], references: [id])
   terminal                 Terminal? @relation(fields: [terminalId], references: [id])
   user                     User      @relation(fields: [userId], references: [id])
 

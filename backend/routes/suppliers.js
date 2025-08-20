@@ -97,7 +97,7 @@ router.get('/', [
         orderBy: { name: 'asc' },
         include: {
           _count: {
-            select: { reports: true }
+            select: { products: true }
           }
         }
       }),
@@ -378,12 +378,7 @@ router.delete('/:id', requireRole('ADMIN'), [
 
     // Verificar se o fornecedor existe
     const supplier = await prisma.supplier.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        _count: {
-          select: { reports: true }
-        }
-      }
+      where: { id: parseInt(id) }
     });
 
     if (!supplier) {
@@ -393,8 +388,14 @@ router.delete('/:id', requireRole('ADMIN'), [
       });
     }
 
-    // Verificar se há relatórios associados
-    if (supplier._count.reports > 0) {
+    // Verificar se há relatórios associados - buscar por supplierIds
+    const reportsCount = await prisma.report.count({
+      where: {
+        supplierIds: { has: parseInt(id) }
+      }
+    });
+
+    if (reportsCount > 0) {
       return res.status(409).json({
         success: false,
         message: 'Não é possível excluir fornecedor que possui relatórios associados'

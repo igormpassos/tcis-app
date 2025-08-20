@@ -2,7 +2,7 @@ const express = require('express');
 const { body, query, param } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const validate = require('../middleware/validation');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -54,7 +54,7 @@ async function generateReportPrefix(terminalId, clientId, endDateTime) {
     // 4. Montar o prefixo final: AAA-XYZ (onde Z é sequencial + dígitos do dia)
     const prefix = `${basePrefix}${dailySequential}${dayDouble}`;
     
-    console.log(`🔖 Prefixo gerado: ${prefix} (Terminal: ${terminal.name}, Cliente: ${clientId}, Dia: ${day}, Sequencial no terminal: ${dailySequential})`);
+
     
     return prefix;
   } catch (error) {
@@ -81,20 +81,24 @@ const createReportValidation = [
       return Number.isInteger(value) && value > 0;
     })
     .withMessage('ID do terminal deve ser um número inteiro positivo ou null'),
-  body('productId')
-    .optional({ nullable: true })
+  body('productIds')
+    .optional()
+    .isArray()
+    .withMessage('productIds deve ser um array')
     .custom((value) => {
-      if (value === null || value === undefined) return true;
-      return Number.isInteger(value) && value > 0;
+      if (!value || value.length === 0) return true;
+      return value.every(id => Number.isInteger(id) && id > 0);
     })
-    .withMessage('ID do produto deve ser um número inteiro positivo ou null'),
-  body('supplierId')
-    .optional({ nullable: true })
+    .withMessage('Todos os IDs de produtos devem ser números inteiros positivos'),
+  body('supplierIds')
+    .optional()
+    .isArray()
+    .withMessage('supplierIds deve ser um array')
     .custom((value) => {
-      if (value === null || value === undefined) return true;
-      return Number.isInteger(value) && value > 0;
+      if (!value || value.length === 0) return true;
+      return value.every(id => Number.isInteger(id) && id > 0);
     })
-    .withMessage('ID do fornecedor deve ser um número inteiro positivo ou null'),
+    .withMessage('Todos os IDs de fornecedores devem ser números inteiros positivos'),
   body('clientId')
     .optional({ nullable: true })
     .custom((value) => {
@@ -276,11 +280,8 @@ router.get('/', listReportsValidation, validate, async (req, res) => {
           terminal: {
             select: { id: true, name: true, code: true }
           },
-          product: {
-            select: { id: true, name: true, code: true }
-          },
-          supplier: {
-            select: { id: true, name: true, code: true }
+          client: {
+            select: { id: true, name: true, contact: true }
           },
           user: {
             select: { id: true, name: true, username: true, email: true, role: true }
@@ -292,9 +293,32 @@ router.get('/', listReportsValidation, validate, async (req, res) => {
 
     const totalPages = Math.ceil(total / parseInt(limit));
 
+    // Buscar produtos e fornecedores para cada relatório
+    const reportsWithDetails = await Promise.all(reports.map(async (report) => {
+      const products = report.productIds && report.productIds.length > 0 
+        ? await prisma.product.findMany({
+            where: { id: { in: report.productIds } },
+            select: { id: true, name: true, code: true, description: true, category: true }
+          })
+        : [];
+
+      const suppliers = report.supplierIds && report.supplierIds.length > 0 
+        ? await prisma.supplier.findMany({
+            where: { id: { in: report.supplierIds } },
+            select: { id: true, name: true, code: true, contact: true, email: true, phone: true }
+          })
+        : [];
+
+      return {
+        ...report,
+        products,
+        suppliers
+      };
+    }));
+
     res.json({
       success: true,
-      data: reports,
+      data: reportsWithDetails,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -307,6 +331,67 @@ router.get('/', listReportsValidation, validate, async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao listar relatórios:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+// GET /api/reports/products-by-suppliers - Buscar produtos por fornecedores
+router.get('/products-by-suppliers', authenticateToken, async (req, res) => {
+  try {
+    const { supplierIds } = req.query;
+    
+    if (!supplierIds) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    // Converter string de IDs para array de números
+    const supplierIdArray = supplierIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
+    
+    if (supplierIdArray.length === 0) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+
+    // Buscar produtos dos fornecedores selecionados
+    const products = await prisma.product.findMany({
+      where: {
+        suppliers: {
+          some: {
+            supplierId: { in: supplierIdArray }
+          }
+        },
+        active: true
+      },
+      include: {
+        suppliers: {
+          include: {
+            supplier: {
+              select: { id: true, name: true }
+            }
+          },
+          where: {
+            supplierId: { in: supplierIdArray }
+          }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    res.json({
+      success: true,
+      data: products
+    });
+
+  } catch (error) {
+    console.error('Erro ao buscar produtos por fornecedores:', error);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'
@@ -334,11 +419,8 @@ router.get('/:id', [
         terminal: {
           select: { id: true, name: true, code: true, location: true }
         },
-        product: {
-          select: { id: true, name: true, code: true, category: true, description: true }
-        },
-        supplier: {
-          select: { id: true, name: true, code: true, contact: true, email: true, phone: true }
+        client: {
+          select: { id: true, name: true, contact: true, emails: true }
         },
         user: {
           select: { id: true, name: true, username: true, email: true, role: true }
@@ -353,9 +435,30 @@ router.get('/:id', [
       });
     }
 
+    // Buscar produtos e fornecedores do relatório
+    const products = report.productIds && report.productIds.length > 0 
+      ? await prisma.product.findMany({
+          where: { id: { in: report.productIds } },
+          select: { id: true, name: true, code: true, description: true, category: true }
+        })
+      : [];
+
+    const suppliers = report.supplierIds && report.supplierIds.length > 0 
+      ? await prisma.supplier.findMany({
+          where: { id: { in: report.supplierIds } },
+          select: { id: true, name: true, code: true, contact: true, email: true, phone: true }
+        })
+      : [];
+
+    const reportWithDetails = {
+      ...report,
+      products,
+      suppliers
+    };
+
     res.json({
       success: true,
-      data: report
+      data: reportWithDetails
     });
 
   } catch (error) {
@@ -370,16 +473,12 @@ router.get('/:id', [
 // POST /api/reports - Criar novo relatório
 router.post('/', createReportValidation, validate, async (req, res) => {
   try {
-    console.log('=== BACKEND DEBUG ===');
-    console.log('Request body received:', JSON.stringify(req.body, null, 2));
-    console.log('User ID:', req.user?.id);
-    console.log('===================');
     
     const {
       prefix,
       terminalId,
-      productId,
-      supplierId,
+      productIds = [], // Array de IDs de produtos
+      supplierIds = [], // Array de IDs de fornecedores
       clientId,
       startDateTime,
       endDateTime,
@@ -397,61 +496,61 @@ router.post('/', createReportValidation, validate, async (req, res) => {
     } = req.body;
 
     // Validar se as referências existem
-    console.log('=== VALIDAÇÃO DE REFERÊNCIAS ===');
     const validationPromises = [];
 
     if (terminalId) {
-      console.log(`Validando terminalId: ${terminalId}`);
       validationPromises.push(
         prisma.terminal.findUnique({ where: { id: terminalId } })
           .then(terminal => {
-            console.log(`Terminal encontrado:`, terminal ? `ID ${terminal.id} - ${terminal.name}` : 'NÃO ENCONTRADO');
             return !terminal ? Promise.reject(new Error('Terminal não encontrado')) : null;
           })
       );
     }
 
-    if (productId) {
-      console.log(`Validando productId: ${productId}`);
+    // Validar produtos (array)
+    if (productIds && productIds.length > 0) {
       validationPromises.push(
-        prisma.product.findUnique({ where: { id: productId } })
-          .then(product => {
-            console.log(`Produto encontrado:`, product ? `ID ${product.id} - ${product.name}` : 'NÃO ENCONTRADO');
-            return !product ? Promise.reject(new Error('Produto não encontrado')) : null;
+        prisma.product.findMany({ where: { id: { in: productIds } } })
+          .then(products => {
+            if (products.length !== productIds.length) {
+              const foundIds = products.map(p => p.id);
+              const missingIds = productIds.filter(id => !foundIds.includes(id));
+              return Promise.reject(new Error(`Produtos não encontrados: ${missingIds.join(', ')}`));
+            }
+            return null;
           })
       );
     }
 
-    if (supplierId) {
-      console.log(`Validando supplierId: ${supplierId}`);
+    // Validar fornecedores (array)
+    if (supplierIds && supplierIds.length > 0) {
       validationPromises.push(
-        prisma.supplier.findUnique({ where: { id: supplierId } })
-          .then(supplier => {
-            console.log(`Fornecedor encontrado:`, supplier ? `ID ${supplier.id} - ${supplier.name}` : 'NÃO ENCONTRADO');
-            return !supplier ? Promise.reject(new Error('Fornecedor não encontrado')) : null;
+        prisma.supplier.findMany({ where: { id: { in: supplierIds } } })
+          .then(suppliers => {
+            if (suppliers.length !== supplierIds.length) {
+              const foundIds = suppliers.map(s => s.id);
+              const missingIds = supplierIds.filter(id => !foundIds.includes(id));
+              return Promise.reject(new Error(`Fornecedores não encontrados: ${missingIds.join(', ')}`));
+            }
+            return null;
           })
       );
     }
 
     try {
       await Promise.all(validationPromises);
-      console.log('✅ Todas as referências validadas com sucesso');
     } catch (validationError) {
-      console.log('❌ Erro de validação:', validationError.message);
       return res.status(400).json({
         success: false,
         message: validationError.message
       });
     }
-    console.log('===============================');
 
     // Gerar prefixo se não fornecido
     let finalPrefix = prefix;
     if (!finalPrefix && terminalId && clientId) {
-      console.log('=== GERANDO PREFIXO AUTOMÁTICO ===');
       try {
         finalPrefix = await generateReportPrefix(terminalId, clientId, endDateTime);
-        console.log('Prefixo gerado automaticamente:', finalPrefix);
       } catch (prefixError) {
         console.error('Erro ao gerar prefixo:', prefixError);
         return res.status(400).json({
@@ -466,36 +565,22 @@ router.post('/', createReportValidation, validate, async (req, res) => {
       });
     }
 
-    // Criar relatório
-    console.log('=== CRIANDO RELATÓRIO NO BANCO ===');
-    console.log('Dados para inserção:', {
-      prefix: finalPrefix,
-      terminalId,
-      productId,
-      supplierId,
-      clientId,
-      userId: req.user.id,
-      startDateTime: new Date(startDateTime),
-      endDateTime: new Date(endDateTime),
-      arrivalDateTime: arrivalDateTime ? new Date(arrivalDateTime) : null,
-      departureDateTime: departureDateTime ? new Date(departureDateTime) : null,
-    });
+    // Criar relatório com arrays de IDs
     
     const report = await prisma.report.create({
       data: {
         prefix: finalPrefix,
         terminalId,
-        productId,
-        supplierId,
         clientId,
         userId: req.user.id,
         createdBy: req.user.id,
+        productIds: productIds || [],
+        supplierIds: supplierIds || [],
         startDateTime: new Date(startDateTime),
         endDateTime: new Date(endDateTime),
         arrivalDateTime: arrivalDateTime ? new Date(arrivalDateTime) : null,
         departureDateTime: departureDateTime ? new Date(departureDateTime) : null,
         status,
-        wagonType,
         hasContamination,
         contaminationDescription,
         homogeneousMaterial,
@@ -506,13 +591,10 @@ router.post('/', createReportValidation, validate, async (req, res) => {
       },
       include: {
         terminal: {
-          select: { id: true, name: true, code: true }
+          select: { id: true, name: true, code: true, location: true }
         },
-        product: {
-          select: { id: true, name: true, code: true }
-        },
-        supplier: {
-          select: { id: true, name: true, code: true }
+        client: {
+          select: { id: true, name: true, contact: true, emails: true }
         },
         user: {
           select: { id: true, name: true, username: true, email: true, role: true }
@@ -520,12 +602,34 @@ router.post('/', createReportValidation, validate, async (req, res) => {
       }
     });
 
-    console.log('✅ Relatório criado com sucesso:', report.id);
+
+    
+    // Buscar produtos e fornecedores para incluir na resposta
+    const products = report.productIds && report.productIds.length > 0 
+      ? await prisma.product.findMany({
+          where: { id: { in: report.productIds } },
+          select: { id: true, name: true, code: true, description: true, category: true }
+        })
+      : [];
+
+    const suppliers = report.supplierIds && report.supplierIds.length > 0 
+      ? await prisma.supplier.findMany({
+          where: { id: { in: report.supplierIds } },
+          select: { id: true, name: true, code: true, contact: true, email: true, phone: true }
+        })
+      : [];
+
+    // Adicionar produtos e fornecedores na resposta
+    const reportWithDetails = {
+      ...report,
+      products,
+      suppliers
+    };
     
     res.status(201).json({
       success: true,
       message: 'Relatório criado com sucesso',
-      data: report
+      data: reportWithDetails
     });
 
   } catch (error) {
@@ -586,6 +690,8 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
       terminalId,
       productId,
       supplierId,
+      productIds,
+      supplierIds,
       clientId,
       startDateTime,
       endDateTime,
@@ -620,20 +726,6 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
     // 2. O prefixo não foi alterado manualmente pelo usuário
     const shouldRegeneratePrefix = (terminalChanged || clientChanged || endDateChanged) && !prefixManuallyChanged;
     
-    console.log('🔍 Debug regeneração:', {
-      terminalChanged,
-      clientChanged,
-      endDateChanged,
-      prefixManuallyChanged,
-      shouldRegeneratePrefix,
-      currentPrefix: existingReport.prefix,
-      receivedPrefix: prefix,
-      terminalId,
-      existingTerminalId: existingReport.terminalId,
-      existingEndDate: existingReport.endDateTime,
-      newEndDate: endDateTime
-    });
-    
     let finalPrefix = prefix;
     if (shouldRegeneratePrefix) {
       const finalTerminalId = terminalId !== undefined ? terminalId : existingReport.terminalId;
@@ -642,18 +734,17 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
       
       try {
         finalPrefix = await generateReportPrefix(finalTerminalId, finalClientId, finalEndDateTime);
-        console.log(`🔄 Prefixo regenerado automaticamente: ${finalPrefix} (Terminal: ${terminalChanged}, Cliente: ${clientChanged}, Data: ${endDateChanged})`);
       } catch (error) {
         console.error('Erro ao regenerar prefixo na edição:', error);
         // Continua com o prefix original se houver erro
         finalPrefix = prefix;
       }
-    } else if (prefixManuallyChanged) {
-      console.log(`✏️ Prefixo alterado manualmente pelo usuário: ${prefix}`);
     }    if (finalPrefix !== undefined) updateData.prefix = finalPrefix;
     if (terminalId !== undefined) updateData.terminalId = terminalId;
     if (productId !== undefined) updateData.productId = productId;
     if (supplierId !== undefined) updateData.supplierId = supplierId;
+    if (productIds !== undefined) updateData.productIds = productIds;
+    if (supplierIds !== undefined) updateData.supplierIds = supplierIds;
     if (clientId !== undefined) updateData.clientId = clientId;
     if (startDateTime !== undefined) updateData.startDateTime = new Date(startDateTime);
     if (endDateTime !== undefined) updateData.endDateTime = new Date(endDateTime);
@@ -681,12 +772,6 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
       data: updateData,
       include: {
         terminal: {
-          select: { id: true, name: true, code: true }
-        },
-        product: {
-          select: { id: true, name: true, code: true }
-        },
-        supplier: {
           select: { id: true, name: true, code: true }
         },
         user: {

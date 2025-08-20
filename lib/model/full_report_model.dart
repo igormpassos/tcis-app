@@ -5,9 +5,9 @@ class FullReportModel {
   final String id;
   final String prefixo;
   final String terminal;
-  final String produto;
+  final String produto; // DEPRECATED - usar produtos
   final String colaborador;
-  final String? fornecedor;
+  final String? fornecedor; // DEPRECATED - usar fornecedores
   final String? cliente;
   final String dataInicio;
   final String horarioInicio;
@@ -26,6 +26,10 @@ class FullReportModel {
   final String pathPdf;
   final DateTime dataCriacao;
   final int status; // 0: rascunho (local), 1: finalizado, 2: revisão, 3: enviado
+  
+  // Novos campos multi-select
+  final List<String> produtos;
+  final List<String> fornecedores;
 
   FullReportModel({
     required this.id,
@@ -51,7 +55,10 @@ class FullReportModel {
     required this.imagens,
     required this.pathPdf,
     required this.dataCriacao,
-    required this.status, // 0: rascunho (local), 1: finalizado, 2: revisão, 3: enviado
+    required this.status,
+    // Novos campos multi-select
+    this.produtos = const [],
+    this.fornecedores = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -80,6 +87,9 @@ class FullReportModel {
       'pathPdf': pathPdf,
       'dataCriacao': dataCriacao.toIso8601String(),
       'status': status,
+      // Novos campos multi-select
+      'produtos': produtos,
+      'fornecedores': fornecedores,
     };
   }
 
@@ -109,6 +119,9 @@ class FullReportModel {
       pathPdf: json['pathPdf'],
       dataCriacao: DateTime.parse(json['dataCriacao']),
       status: json['status'] ?? 0, // ou qualquer valor padrão como -1
+      // Novos campos multi-select
+      produtos: json['produtos'] != null ? List<String>.from(json['produtos']) : [],
+      fornecedores: json['fornecedores'] != null ? List<String>.from(json['fornecedores']) : [],
     );
   }
 
@@ -140,6 +153,13 @@ class FullReportModel {
       produto: serverData['product']?['name'] ?? '',
       colaborador: serverData['user']?['name'] ?? '',
       fornecedor: serverData['supplier']?['name'],
+      // Extrair dados dos arrays para compatibilidade
+      produtos: serverData['products'] != null 
+          ? List<String>.from(serverData['products'].map((p) => p['name']))
+          : [],
+      fornecedores: serverData['suppliers'] != null 
+          ? List<String>.from(serverData['suppliers'].map((s) => s['name']))
+          : [],
       dataInicio: DateFormat('dd/MM/yyyy').format(startDateTime),
       horarioInicio: startDateTime.toIso8601String().split('T').last.substring(0, 5),
       dataTermino: DateFormat('dd/MM/yyyy').format(endDateTime),
@@ -185,6 +205,9 @@ class FullReportModel {
     String? pathPdf,
     DateTime? dataCriacao,
     int? status,
+    // Novos campos multi-select
+    List<String>? produtos,
+    List<String>? fornecedores,
   }) {
     return FullReportModel(
       id: id ?? this.id,
@@ -212,6 +235,9 @@ class FullReportModel {
       pathPdf: pathPdf ?? this.pathPdf,
       dataCriacao: dataCriacao ?? this.dataCriacao,
       status: status ?? this.status,
+      // Novos campos multi-select
+      produtos: produtos ?? this.produtos,
+      fornecedores: fornecedores ?? this.fornecedores,
     );
   }
 }
