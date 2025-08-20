@@ -166,7 +166,7 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
     }
 
     try {
-      final url = pdfUrl.startsWith('http') ? pdfUrl : '${API_BASE_URL}/$pdfUrl';
+      final url = pdfUrl.startsWith('http') ? pdfUrl : '$API_BASE_URL/$pdfUrl';
       final uri = Uri.parse(url);
       
       if (await canLaunchUrl(uri)) {
