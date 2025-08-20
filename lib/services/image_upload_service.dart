@@ -66,7 +66,7 @@ class ImageUploadService {
         await apiService.loadToken(); // Carregar token salvo
         
         final response = await _dio.post(
-          '$baseUrl/api/uploads/image',
+          '$baseUrl/uploads/image',
           data: formData,
           options: Options(
             headers: {
@@ -123,7 +123,7 @@ class ImageUploadService {
       await apiService.loadToken();
 
       final response = await _dio.post(
-        '$baseUrl/api/uploads/pdf',
+  '$baseUrl/uploads/pdf',
         data: formData,
         options: Options(
           headers: {
