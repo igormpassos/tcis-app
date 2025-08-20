@@ -3,28 +3,28 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
-import '../config/api_config.dart';
+import '../constants.dart';
 
 class ApiService {
   // Detecta automaticamente a URL baseada na plataforma
   static String get baseUrl {
     // Para web sempre usa localhost
     if (kIsWeb) {
-      return ApiConfig.webUrl;
+  return API_BASE_URL;
     }
     
     // Para simulador iOS usa o IP da máquina local
     if (Platform.isIOS) {
-      return ApiConfig.iosUrl;
+  return API_BASE_URL;
     }
     
     // Para Android
     if (Platform.isAndroid) {
-      return ApiConfig.androidUrl;
+  return API_BASE_URL;
     }
     
     // Para macOS e outras plataformas desktop usa localhost
-    return ApiConfig.desktopUrl;
+  return API_BASE_URL;
   }
   
   // Singleton pattern
