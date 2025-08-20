@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../constants.dart';
 import '../../services/admin_service.dart';
 import '../../controllers/auth_controller.dart';
-import '../../widgets/common/delete_confirmation_dialog.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -330,20 +329,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     active: isActive,
                   );
 
-                  if (response['success']) {
-                    Navigator.pop(context);
-                    await loadUsers();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Usuário atualizado com sucesso!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                    if (response['success']) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Usuário atualizado com sucesso!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                      Navigator.pop(context);
+                      await loadUsers();
+                    } else {
+                      throw Exception(response['message'] ?? 'Erro ao atualizar usuário');
                     }
-                  } else {
-                    throw Exception(response['message'] ?? 'Erro ao atualizar usuário');
-                  }
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
