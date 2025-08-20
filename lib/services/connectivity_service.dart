@@ -1,11 +1,17 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class ConnectivityService {
   static final Connectivity _connectivity = Connectivity();
 
   /// Verifica se há conexão com a internet
   static Future<bool> hasInternetConnection() async {
+    // No ambiente web, sempre considera como online
+    if (kIsWeb) {
+      return true;
+    }
+    
     try {
       // Primeiro verifica o tipo de conexão
       final List<ConnectivityResult> connectivityResult = 
@@ -26,11 +32,20 @@ class ConnectivityService {
 
   /// Stream para monitorar mudanças de conectividade
   static Stream<List<ConnectivityResult>> onConnectivityChanged() {
+    // No ambiente web, retorna um stream que sempre indica conexão
+    if (kIsWeb) {
+      return Stream.value([ConnectivityResult.wifi]);
+    }
     return _connectivity.onConnectivityChanged;
   }
 
   /// Verifica conectividade específica (WiFi, Mobile, etc)
   static Future<bool> hasWifiConnection() async {
+    // No ambiente web, sempre considera como WiFi
+    if (kIsWeb) {
+      return true;
+    }
+    
     final List<ConnectivityResult> connectivityResult = 
         await _connectivity.checkConnectivity();
     return connectivityResult.contains(ConnectivityResult.wifi);
@@ -38,6 +53,11 @@ class ConnectivityService {
 
   /// Verifica se está usando dados móveis
   static Future<bool> hasMobileConnection() async {
+    // No ambiente web, nunca considera como dados móveis
+    if (kIsWeb) {
+      return false;
+    }
+    
     final List<ConnectivityResult> connectivityResult = 
         await _connectivity.checkConnectivity();
     return connectivityResult.contains(ConnectivityResult.mobile);

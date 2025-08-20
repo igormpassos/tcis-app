@@ -7,7 +7,6 @@ import 'supplier_management_screen.dart';
 import 'product_management_screen.dart';
 import 'terminal_management_screen.dart';
 import 'client_management_screen.dart';
-import 'all_reports_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -124,78 +123,114 @@ class AdminDashboardScreen extends StatelessWidget {
                           const SizedBox(height: 30),
 
                           Expanded(
-                            child: GridView.count(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 15,
-                              mainAxisSpacing: 15,
-                              childAspectRatio: 1.0,
-                              children: [
-                                _buildAdminCard(
-                                  context,
-                                  'Usuários',
-                                  'Gerenciar usuários do sistema',
-                                  Icons.people,
-                                  Colors.blue,
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const UserManagementScreen(),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                // Determina o número de colunas baseado na largura da tela
+                                int crossAxisCount;
+                                double childAspectRatio;
+                                double iconSize;
+                                
+                                if (constraints.maxWidth > 1200) {
+                                  // Desktop grande
+                                  crossAxisCount = 4;
+                                  childAspectRatio = 1.1;
+                                  iconSize = 28;
+                                } else if (constraints.maxWidth > 800) {
+                                  // Desktop pequeno / Tablet grande
+                                  crossAxisCount = 3;
+                                  childAspectRatio = 1.0;
+                                  iconSize = 30;
+                                } else if (constraints.maxWidth > 600) {
+                                  // Tablet
+                                  crossAxisCount = 3;
+                                  childAspectRatio = 0.9;
+                                  iconSize = 32;
+                                } else {
+                                  // Mobile
+                                  crossAxisCount = 2;
+                                  childAspectRatio = 1.0;
+                                  iconSize = 32;
+                                }
+
+                                return GridView.count(
+                                  crossAxisCount: crossAxisCount,
+                                  crossAxisSpacing: 15,
+                                  mainAxisSpacing: 15,
+                                  childAspectRatio: childAspectRatio,
+                                  children: [
+                                    _buildAdminCard(
+                                      context,
+                                      'Usuários',
+                                      'Gerenciar usuários do sistema',
+                                      Icons.people,
+                                      Colors.blue,
+                                      iconSize,
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const UserManagementScreen(),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                _buildAdminCard(
-                                  context,
-                                  'Fornecedores',
-                                  'Gerenciar fornecedores',
-                                  Icons.business,
-                                  Colors.green,
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const SupplierManagementScreen(),
+                                    _buildAdminCard(
+                                      context,
+                                      'Fornecedores',
+                                      'Gerenciar fornecedores',
+                                      Icons.business,
+                                      Colors.green,
+                                      iconSize,
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const SupplierManagementScreen(),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                _buildAdminCard(
-                                  context,
-                                  'Produtos',
-                                  'Gerenciar produtos',
-                                  Icons.inventory_2,
-                                  Colors.orange,
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const ProductManagementScreen(),
+                                    _buildAdminCard(
+                                      context,
+                                      'Produtos',
+                                      'Gerenciar produtos',
+                                      Icons.inventory_2,
+                                      Colors.orange,
+                                      iconSize,
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const ProductManagementScreen(),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                _buildAdminCard(
-                                  context,
-                                  'Terminais',
-                                  'Gerenciar terminais',
-                                  Icons.location_on,
-                                  Colors.purple,
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const TerminalManagementScreen(),
+                                    _buildAdminCard(
+                                      context,
+                                      'Terminais',
+                                      'Gerenciar terminais',
+                                      Icons.location_on,
+                                      Colors.purple,
+                                      iconSize,
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const TerminalManagementScreen(),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                _buildAdminCard(
-                                  context,
-                                  'Clientes',
-                                  'Gerenciar clientes',
-                                  Icons.people_alt,
-                                  Colors.teal,
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const ClientManagementScreen(),
+                                    _buildAdminCard(
+                                      context,
+                                      'Clientes',
+                                      'Gerenciar clientes',
+                                      Icons.people_alt,
+                                      Colors.teal,
+                                      iconSize,
+                                      () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const ClientManagementScreen(),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              ],
+                                  ],
+                                );
+                              },
                             ),
                           ),
 
@@ -248,6 +283,7 @@ class AdminDashboardScreen extends StatelessWidget {
     String description,
     IconData icon,
     Color color,
+    double iconSize,
     VoidCallback onTap,
   ) {
     return GestureDetector(
@@ -279,7 +315,7 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
                 child: Icon(
                   icon,
-                  size: 32,
+                  size: iconSize,
                   color: color,
                 ),
               ),
