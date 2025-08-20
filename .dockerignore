@@ -1,0 +1,73 @@
+# Build outputs
+/build/
+/android/build/
+/ios/build/
+/macos/build/
+/linux/build/
+/windows/build/
+/web/build/
+
+# Dependencies
+/node_modules/
+/.pub/
+/.dart_tool/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Flutter specific
+.metadata
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Android specific
+/android/.gradle/
+/android/local.properties
+/android/key.properties
+/android/app/upload-keystore.jks
+
+# iOS specific
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/flutter_assets/
+/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS specific
+/macos/Pods/
+/macos/.symlinks/
+/macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Backend specific
+/backend/node_modules/
+/backend/uploads/
+/backend/.env
+/backend/dev.db*
+/backend/nohup.out
+/backend/server.log
+
+# Git
+.git/
+.gitignore
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/

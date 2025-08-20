@@ -1,0 +1,45 @@
+# Logs
+*.log
+npm-debug.log*
+
+# Dependências
+/node_modules
+/.pnp
+.pnp.js
+
+# Arquivos de ambiente locais
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arquivos de build
+/build
+/dist
+
+# Arquivos temporários
+.tmp
+*.tmp
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos do editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+dev.db
+dev.db-journal
+
+# Prisma
+.env
+
+# Uploads de desenvolvimento
+uploads/*.jpg
+uploads/*.png
+uploads/*.pdf
+!uploads/.gitkeep
