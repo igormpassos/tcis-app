@@ -213,7 +213,7 @@ class ReportApiService {
     List<String> serverImageUrls
   ) async {
     final tempImages = <Map<String, dynamic>>[];
-    final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
+  final baseUrl = ApiService.baseUrl;
     
     // Baixar cada imagem do servidor e criar arquivo temporário
     for (int i = 0; i < serverImageUrls.length; i++) {

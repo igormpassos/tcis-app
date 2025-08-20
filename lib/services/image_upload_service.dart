@@ -43,7 +43,7 @@ class ImageUploadService {
   }) async {
     try {
       final List<String> uploadedPaths = [];
-      final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
+  final baseUrl = ApiService.baseUrl;
 
       for (int i = 0; i < images.length; i++) {
         final image = images[i];
@@ -108,7 +108,7 @@ class ImageUploadService {
     required String reportPrefix,
   }) async {
     try {
-      final baseUrl = ApiService.apiBaseUrl.replaceAll('/api', '');
+  final baseUrl = ApiService.apiBaseUrl;
       final fileName = '${reportPrefix}_${DateTime.now().millisecondsSinceEpoch}.pdf';
       
       final formData = FormData.fromMap({
