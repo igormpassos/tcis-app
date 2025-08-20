@@ -1,24 +1,9 @@
 # Dockerfile principal para o frontend Flutter Web
-FROM ubuntu:22.04 as builder
+FROM cirrusci/flutter:3.19.6 as builder
 
-# Instalar dependências
-RUN apt-get update && apt-get install -y \
-    curl \
-    git \
-    unzip \
-    xz-utils \
-    zip \
-    libglu1-mesa \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Instalar Flutter
-RUN git clone https://github.com/flutter/flutter.git /flutter
-ENV PATH="/flutter/bin:${PATH}"
-
-# Configurar Flutter
-RUN flutter doctor -v
-RUN flutter config --enable-web
+# Configurar Flutter para web
+RUN flutter config --enable-web --no-analytics
+RUN flutter precache --web
 
 # Copiar código Flutter
 WORKDIR /app

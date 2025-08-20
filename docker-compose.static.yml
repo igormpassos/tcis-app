@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: tcis_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tcis2024}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    
+  # Backend Node.js API
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-tcis2024}@postgres:5432/tcis_db
+      JWT_SECRET: ${JWT_SECRET:-tcis_jwt_secret_super_secure}
+      JWT_EXPIRES_IN: 24h
+      PORT: 3000
+      NODE_ENV: production
+      ALLOWED_ORIGINS: https://${DOMAIN:-localhost}
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Frontend estático (usando build pré-feito)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.static
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    
+volumes:
+  postgres_data:
+  backend_uploads:

@@ -1,51 +1,63 @@
-# 🚨 SOLUÇÃO RÁPIDA PARA EASYPANEL
+# 🚨 SOLUÇÃO PARA ERRO DO FLUTTER BUILD
 
-## Problema Identificado
-O Easypanel está procurando um `Dockerfile` na raiz, mas só existia `Dockerfile.web`.
+## Problema Atual
+O Docker não consegue baixar o Flutter SDK devido a problemas de rede no servidor.
 
-## ✅ Solução Aplicada
+## ✅ SOLUÇÃO RÁPIDA: Build Local + Deploy Estático
 
-Criei o `Dockerfile` principal na raiz do projeto que builda o frontend Flutter Web.
+### Método 1: Build Local (RECOMENDADO)
 
-## 🔧 Configuração no Easypanel
+1. **Execute o script de build local:**
+   ```bash
+   ./build-static.sh
+   ```
 
-### Opção 1: Deploy Apenas Frontend (Mais Simples)
+2. **No Easypanel:**
+   - Use `Dockerfile.static` em vez do `Dockerfile` principal
+   - Ou faça upload do arquivo `tcis-web-build.tar.gz`
 
-1. **No Easypanel, configure:**
-   - **Build Context:** `/` (raiz)
-   - **Dockerfile:** `Dockerfile`
-   - **Port:** `80`
+3. **Deploy:**
+   ```bash
+   # Renomear Dockerfile
+   mv Dockerfile.static Dockerfile
+   
+   # Ou usar docker-compose estático
+   docker-compose -f docker-compose.static.yml up -d
+   ```
 
-2. **Para o backend, crie um serviço separado:**
-   - **Build Context:** `/backend`
-   - **Dockerfile:** `backend/Dockerfile`
-   - **Port:** `3000`
+### Método 2: Deploy Apenas Backend
 
-3. **Para PostgreSQL, use o serviço gerenciado do Easypanel**
+Se o Flutter não funcionar, deploy apenas o backend:
 
-### Opção 2: Docker Compose (Recomendado)
+1. **Crie serviço para backend:**
+   - Build Context: `/backend`
+   - Dockerfile: `backend/Dockerfile`
+   - Port: `3000`
 
-Use o arquivo `docker-compose.prod.yml` que criei:
+2. **Frontend: Use serviço estático**
+   - Upload manual dos arquivos `build/web/`
+   - Use nginx simples
+
+## 🔧 Dockerfiles Disponíveis
+
+- `Dockerfile` - Build completo com Flutter (problemático)
+- `Dockerfile.simple` - Versão com imagem oficial
+- `Dockerfile.static` - Apenas nginx com arquivos pré-construídos ✅
+
+## 🚀 Comandos Rápidos
 
 ```bash
+# Build local e preparar
+./build-static.sh
+
+# Upload para servidor
+scp tcis-web-build.tar.gz user@servidor:/path/
+
 # No servidor
-docker-compose -f docker-compose.prod.yml up -d
+tar -xzf tcis-web-build.tar.gz
+docker build -f Dockerfile.static -t tcis-web .
+docker run -d -p 80:80 tcis-web
 ```
-
-### Opção 3: Deploy Manual Rápido
-
-1. **Frontend (Porta 80):**
-   ```bash
-   docker build -t tcis-frontend .
-   docker run -d -p 80:80 tcis-frontend
-   ```
-
-2. **Backend (Porta 3000):**
-   ```bash
-   cd backend
-   docker build -t tcis-backend .
-   docker run -d -p 3000:3000 -e DATABASE_URL="your_db_url" tcis-backend
-   ```
 
 ## 🎯 Variáveis de Ambiente Necessárias
 
