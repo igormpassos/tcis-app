@@ -6,6 +6,7 @@ class ApiConfig {
   
   // URLs base para diferentes ambientes
   static const String _baseUrl = '/api';
+  static const String _prodUrl = 'https://projetos-tcis-api.fzhijv.easypanel.host';
   
   // Detectar ambiente automaticamente
   static bool get isProduction {
@@ -18,10 +19,10 @@ class ApiConfig {
   // URL base dinâmica baseada no ambiente
   static String get baseUrl {
     if (isProduction) {
-      // Em produção, usar URL relativa (mesmo domínio)
-      return _baseUrl;
+      // Em produção, retorna a URL do backend
+      return _prodUrl;
     } else {
-      // Em desenvolvimento, detectar plataforma
+      // Em desenvolvimento, retorna localhost
       return _getDevBaseUrl();
     }
   }

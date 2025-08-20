@@ -4,7 +4,8 @@ FROM node:18-alpine
 # Instalar dependências do sistema necessárias
 RUN apk add --no-cache \
     postgresql-client \
-    curl
+    curl \
+    openssl
 
 # Criar diretório de trabalho
 WORKDIR /app
@@ -31,4 +32,4 @@ EXPOSE 3000
 RUN echo '#!/bin/sh\necho "Running migrations..."\nnpx prisma migrate deploy\necho "Starting server..."\nnode server.js' > start.sh && chmod +x start.sh
 
 # Comando para iniciar a aplicação
-CMD ["./start.sh"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
