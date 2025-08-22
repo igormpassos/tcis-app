@@ -150,6 +150,28 @@ docker-compose up -d
 - **Banco de Dados**: PostgreSQL na porta 5432
 - **Credenciais padrão**: admin@admin.com / 123456
 
+## 🚀 **Execução Rápida**
+
+### **Para Professores e Avaliadores:**
+
+**Executar o sistema em 1 comando:**
+
+```bash
+# Linux/macOS
+./iniciar-tcis.sh
+
+# Windows
+iniciar-tcis.bat
+```
+
+**Credenciais de teste:**
+- **Admin:** `admin` / `123456`  
+- **Operador:** `operador` / `123456`
+
+**📋 [Ver instruções completas →](INSTRUCOES_EXECUCAO.md)**
+
+---
+
 ## 6. Referências
 
 FLUTTER. Flutter Documentation. Disponível em: https://docs.flutter.dev/. Acesso em: 22 ago. 2025.
