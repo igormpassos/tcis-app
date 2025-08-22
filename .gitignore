@@ -45,3 +45,57 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Backend specific
+backend/node_modules/
+backend/.env
+backend/dev.db
+backend/*.log
+backend/nohup.out
+backend/server.log
+backend/uploads/temp/
+backend/prisma/dev.db*
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.#*
+#*#
+.*.swp
+.*.swo
+
+# Test files
+**/test_*.dart
+**/test_*.js
+**/debug_*.dart
+**/debug_*.js
+**/*_temp.js
+**/*_temp.dart
+
+# Scripts de desenvolvimento/deploy específicos
+check_*.sh
+test_*.sh
+update_*.sh
+**/adminer.php
+
+# Certificados e chaves
+*.cer
+*.certSigningRequest
+*.key
+*.pem
+
+# Arquivos de backup
+*.bak
+*.backup
+*.old
+
+# Builds e arquivos compactados
+*.tar.gz
+*.zip
+*.tar
+*-build.tar.gz
+
+# Logs de sistema
+nohup.out
+server.log
