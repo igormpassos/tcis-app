@@ -13,4 +13,4 @@ const Color AcentColor = Color(0xFF84B702);
 const Color LabelColor = Color(0xFFc5c4c4);
 
 // API Base URL
-const String API_BASE_URL = 'https://api.tcisbrasil.com.br';
+const String API_BASE_URL = 'http://localhost:3000';

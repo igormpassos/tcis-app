@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:tcis_app/components/custom_loading_widget.dart';
 import 'package:uuid/uuid.dart';
@@ -223,12 +224,15 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     );
 
     try {
-      // Preparar arquivos de imagem
-      final imageFiles = <File>[];
+      // Preparar arquivos de imagem (suporta File e XFile)
+      final imageFiles = <dynamic>[];
       for (var imageData in _images) {
-        final file = imageData['file'] as File?;
-        if (file != null && await file.exists()) {
-          imageFiles.add(file);
+        final file = imageData['file'];
+        if (file != null) {
+          // Para web, pode ser XFile. Para outras plataformas, File
+          if (kIsWeb || file is File) {
+            imageFiles.add(file);
+          }
         }
       }
 
@@ -255,7 +259,13 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         houveChuva: houveChuva ?? '',
         fornecedorAcompanhou: fornecedorAcompanhou ?? '',
         observacoes: observacoesController.text,
-        imagens: _images.map((img) => img['file'].path.toString()).toList(),
+        imagens: _images.map((img) => 
+          img['file'] != null ? 
+            (img['file'].runtimeType.toString().contains('XFile') ? 
+              img['file'].name : 
+              img['file'].path.toString()) : 
+            ''
+        ).toList().cast<String>(),
         pathPdf: '',
         dataCriacao: DateTime.now(),
         status: 1, // Finalizado
@@ -358,7 +368,13 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       houveChuva: houveChuva ?? '',
       fornecedorAcompanhou: fornecedorAcompanhou ?? '',
       observacoes: observacoesController.text,
-      imagens: _images.map((img) => img['file'].path.toString()).toList(),
+      imagens: _images.map((img) => 
+        img['file'] != null ? 
+          (img['file'].runtimeType.toString().contains('XFile') ? 
+            img['file'].name : 
+            img['file'].path.toString()) : 
+          ''
+      ).toList().cast<String>(),
       pathPdf: '', // ainda não foi gerado
       dataCriacao: DateTime.now(),
       status: 0, // Rascunho (local apenas)

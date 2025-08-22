@@ -79,6 +79,9 @@ class ApiService {
   // Getter público para a baseUrl
   static String get apiBaseUrl => baseUrl;
 
+  // Getter público para headers
+  Map<String, String> get headers => _headers;
+
   // GET request
   Future<http.Response> get(String endpoint) async {
     final url = Uri.parse('$baseUrl$endpoint');

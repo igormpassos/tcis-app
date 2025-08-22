@@ -156,8 +156,8 @@ router.post('/multiple', auth, upload.array('files', 10), async (req, res) => {
   }
 });
 
-// GET /api/upload/:folder/:filename - Servir arquivos
-router.get('/:folder/:filename', (req, res) => {
+// GET /api/uploads/file/:folder/:filename - Servir arquivos via API (se necessário auth)
+router.get('/file/:folder/:filename', auth, (req, res) => {
   try {
     const { folder, filename } = req.params;
     const filePath = path.join(__dirname, '../uploads', folder, filename);

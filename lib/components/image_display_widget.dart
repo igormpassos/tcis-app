@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
+import 'package:tcis_app/widgets/web_image_preview.dart';
 
 class ImageDisplayWidget extends StatelessWidget {
   final dynamic imageFile;
@@ -75,30 +77,34 @@ class ImageDisplayWidget extends StatelessWidget {
       );
     }
 
-    // Para web, não podemos usar Image.file
+    // Para web, usar widget otimizado
     if (kIsWeb) {
-      // Para web, mostramos um placeholder indicando que a imagem foi carregada
-      return Container(
-        color: Colors.blue[50],
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 30),
-              SizedBox(height: 4),
-              Text(
-                'Imagem\nCarregada', 
-                textAlign: TextAlign.center, 
-                style: TextStyle(fontSize: 10, color: Colors.green),
-              ),
-            ],
-          ),
-        ),
+      return WebImagePreview(
+        imageFile: imageFile,
+        width: width,
+        height: height,
+        fit: fit,
       );
     }
 
-    // Para plataformas móveis/desktop
+    // Para plataformas móveis/desktop - usar imageFile como File
     try {
+      // Garantir que seja um File válido
+      if (imageFile is! File) {
+        return Container(
+          color: Colors.grey[200],
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.image, color: Colors.grey, size: 20),
+                Text('Arquivo\ninválido', textAlign: TextAlign.center, style: TextStyle(fontSize: 10)),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Image.file(
         imageFile,
         width: width,

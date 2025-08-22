@@ -50,7 +50,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir arquivos estáticos para uploads
+// Servir arquivos estáticos para uploads (PÚBLICO - deve vir ANTES das rotas protegidas)
 app.use('/uploads', express.static('uploads'));
 
 // Health check
@@ -79,7 +79,7 @@ app.use('/products', authenticateToken, productRoutes);
 app.use('/suppliers', authenticateToken, supplierRoutes);
 app.use('/employees', authenticateToken, employeeRoutes);
 app.use('/clients', authenticateToken, clientRoutes);
-app.use('/uploads', authenticateToken, uploadRoutes);
+app.use('/api/uploads', authenticateToken, uploadRoutes); // Mudança: usar /api/uploads para API
 app.use('/users', authenticateToken, userRoutes);
 
 // Rota 404

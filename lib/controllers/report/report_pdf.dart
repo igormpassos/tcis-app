@@ -2,8 +2,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:typed_data';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'dart:convert';
@@ -11,10 +10,49 @@ import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tcis_app/model/full_report_model.dart'; // certifique-se que esse model está criado
 
+// Importações condicionais corretas
+import 'dart:io' if (dart.library.html) 'package:tcis_app/utils/web_stub.dart' as io;
+import 'package:path_provider/path_provider.dart' if (dart.library.html) 'package:tcis_app/utils/web_stub.dart' as path_provider;
+
+// Para web, importar dart:html
+import 'dart:html' as html;
+
+// Variável global para armazenar bytes do PDF temporariamente (para upload na web)
+Uint8List? _tempPdfBytes;
+
+// Helper para download na web
+void _downloadFileWeb(Uint8List bytes, String filename) {
+  final blob = html.Blob([bytes]);
+  final url = html.Url.createObjectUrlFromBlob(blob);
+  final anchor = html.document.createElement('a') as html.AnchorElement;
+  anchor.href = url;
+  anchor.target = '_blank';
+  anchor.download = filename;
+  anchor.click();
+  html.Url.revokeObjectUrl(url);
+}
+
 // Reduzir resolução e qualidade da imagem
-Future<Uint8List> compressImage(File imageFile) async {
+Future<Uint8List> compressImage(dynamic imageInput) async {
   try {
-    final imageBytes = await imageFile.readAsBytes();
+    Uint8List imageBytes;
+    
+    if (kIsWeb) {
+      // Na web, imageInput já deve ser Uint8List
+      if (imageInput is Uint8List) {
+        imageBytes = imageInput;
+      } else {
+        throw Exception('Invalid image input for web');
+      }
+    } else {
+      // No mobile, imageInput é File
+      if (imageInput is io.File) {
+        imageBytes = await imageInput.readAsBytes();
+      } else {
+        throw Exception('Invalid image input for mobile');
+      }
+    }
+    
     final originalImage = img.decodeImage(imageBytes);
 
     if (originalImage == null) {
@@ -26,12 +64,11 @@ Future<Uint8List> compressImage(File imageFile) async {
 
     return Uint8List.fromList(compressed);
   } catch (e) {
-    // Retorna os bytes originais se houver erro
-    try {
-      return await imageFile.readAsBytes();
-    } catch (e2) {
-      return Uint8List(0);
+    // Retorna os bytes originais se houver erro ou input vazio
+    if (imageInput is Uint8List) {
+      return imageInput;
     }
+    return Uint8List(0);
   }
 }
 
@@ -78,21 +115,35 @@ Future<String> generatePdf({
   List<Map<String, dynamic>> imagesBytes = [];
 
   for (var imageData in images) {
-    final file = imageData['file'] as File?;
-    if (file != null && await file.exists()) {
-      //final bytes = await file.readAsBytes();
-      final bytes = await compressImage(file);
-      imagesBytes.add({'bytes': bytes, 'timestamp': imageData['timestamp']});
-      // Após carregar todas as imagens com bytes
-      imagesBytes.sort(
-        (a, b) =>
-            (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime),
-      );
-
-    } else {
-      // Image not found or invalid
+    try {
+      if (kIsWeb) {
+        // Na web, esperamos que 'file' seja Uint8List ou bytes
+        final imageBytes = imageData['bytes'] as Uint8List?;
+        if (imageBytes != null && imageBytes.isNotEmpty) {
+          final compressedBytes = await compressImage(imageBytes);
+          imagesBytes.add({'bytes': compressedBytes, 'timestamp': imageData['timestamp']});
+        }
+      } else {
+        // No mobile, 'file' é File
+        final file = imageData['file'];
+        if (file != null) {
+          // Verificação condicional para mobile  
+          if (await (file as io.File).exists()) {
+            final compressedBytes = await compressImage(file);
+            imagesBytes.add({'bytes': compressedBytes, 'timestamp': imageData['timestamp']});
+          }
+        }
+      }
+    } catch (e) {
+      print('Erro ao processar imagem: $e');
+      // Continue com a próxima imagem em caso de erro
     }
   }
+  
+  // Ordenar imagens por timestamp
+  imagesBytes.sort(
+    (a, b) => (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime),
+  );
 
   // Função para o cabeçalho
   pw.Widget buildHeader() {
@@ -605,21 +656,31 @@ Future<String> generatePdf({
     );
   }*/
 
-  // --- Salvar e abrir PDF ---
-  // final Directory tempDir = await getTemporaryDirectory();
-  // final String tempPath = tempDir.path;
-  // final String filePath = '$tempPath/${prefixoController.text}-2025.pdf';
-  final Directory appDocDir = await getApplicationDocumentsDirectory();
-  final Directory reportsDir = Directory('${appDocDir.path}/relatorios');
+  // --- Salvar PDF ---
+  final Uint8List pdfBytes = await pdf.save();
+  String filePath;
+  
+  // Armazenar bytes temporariamente para acesso posterior (web upload)
+  _tempPdfBytes = pdfBytes;
+  
+  if (kIsWeb) {
+    // Na web, usar helper para download direto
+    final filename = '${prefixoController.text}-${DateTime.now().millisecondsSinceEpoch}.pdf';
+    _downloadFileWeb(pdfBytes, filename);
+    filePath = filename; // Para retorno do método
+  } else {
+    // No mobile, salvar no filesystem
+    final appDocDir = await path_provider.getApplicationDocumentsDirectory();
+    final reportsDir = io.Directory('${appDocDir.path}/relatorios');
 
-  if (!(await reportsDir.exists())) {
-    await reportsDir.create(recursive: true);
+    if (!(await reportsDir.exists())) {
+      await reportsDir.create(recursive: true);
+    }
+
+    filePath = '${reportsDir.path}/${prefixoController.text}-${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final file = io.File(filePath);
+    await file.writeAsBytes(pdfBytes);
   }
-
-  final String filePath =
-      '${reportsDir.path}/${prefixoController.text}-${DateTime.now()}.pdf';
-  final File file = File(filePath);
-  file.writeAsBytesSync(await pdf.save());
 
   //await OpenFile.open(filePath);
 
@@ -647,7 +708,13 @@ Future<String> generatePdf({
     houveChuva: houveChuva ?? '',
     fornecedorAcompanhou: fornecedorAcompanhou ?? '',
     observacoes: observacoesController.text,
-    imagens: images.map((img) => img['file'].path.toString()).toList(),
+    imagens: images.map((img) => 
+      img['file'] != null ? 
+        (img['file'].runtimeType.toString().contains('XFile') ? 
+          img['file'].name : 
+          img['file'].path.toString()) : 
+        (img['path'] ?? '')
+    ).toList().cast<String>(),
     pathPdf: filePath,
     dataCriacao: DateTime.now(),
   );
@@ -659,6 +726,13 @@ Future<String> generatePdf({
 
   // Retornar o caminho do arquivo PDF gerado
   return filePath;
+}
+
+// Função para obter os bytes do último PDF gerado (para upload na web)
+Uint8List? getLastGeneratedPdfBytes() {
+  final bytes = _tempPdfBytes;
+  _tempPdfBytes = null; // Limpar após uso
+  return bytes;
 }
 
 // Funções helper para exibir listas no PDF

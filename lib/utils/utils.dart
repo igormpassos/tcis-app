@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:tcis_app/utils/web_image_utils.dart';
 
 class RiveUtils {
   static SMIBool getRiveInput(
@@ -77,8 +78,17 @@ class ImageUtils {
 
   static Future<List<Map<String, dynamic>>> pickImagesWithMetadata() async {
     try {
+      print('pickImagesWithMetadata iniciado - Web: $kIsWeb');
+      
+      // Para web, usar implementação otimizada
+      if (kIsWeb) {
+        print('Usando implementação web otimizada');
+        return await WebImageUtils.pickMultipleImages();
+      }
+      
       // Para macOS, usar file_selector para uma experiência melhor
       if (Platform.isMacOS) {
+        print('Usando file_selector para macOS');
         const XTypeGroup typeGroup = XTypeGroup(
           label: 'Imagens',
           extensions: <String>['jpg', 'jpeg', 'png', 'heic', 'webp'],
@@ -116,6 +126,7 @@ class ImageUtils {
       }
       
       // Para outras plataformas (iOS, Android), usar image_picker
+      print('Usando image_picker padrão');
       final picker = ImagePicker();
       final pickedFiles = await picker.pickMultiImage();
 
@@ -125,30 +136,21 @@ class ImageUtils {
 
       for (final pickedFile in pickedFiles) {
         try {
-          // Para web, criar um objeto pseudo-File
-          if (kIsWeb) {
+          final file = File(pickedFile.path);
+          if (await file.exists()) {
+            final creationDate =
+                await ImageUtils.getCreationDate(file) ?? DateTime.now();
             images.add({
-              'file': pickedFile, // XFile para web
-              'timestamp': DateTime.now(),
-              'path': pickedFile.name,
+              'file': file, 
+              'timestamp': creationDate,
+              'path': file.path,
             });
-          } else {
-            final file = File(pickedFile.path);
-            if (await file.exists()) {
-              final creationDate =
-                  await ImageUtils.getCreationDate(file) ?? DateTime.now();
-              images.add({
-                'file': file, 
-                'timestamp': creationDate,
-                'path': file.path,
-              });
-            }
           }
         } catch (e) {
           print('Erro ao processar imagem ${pickedFile.path}: $e');
           // Adiciona a imagem mesmo com erro, usando timestamp atual
           images.add({
-            'file': kIsWeb ? pickedFile : File(pickedFile.path),
+            'file': File(pickedFile.path),
             'timestamp': DateTime.now(),
             'path': pickedFile.path,
           });

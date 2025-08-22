@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -163,17 +164,34 @@ class _EditReportScreenState extends State<EditReportScreen> {
 
     // Process images
     for (var path in r.imagens) {
-      final file = File(path);
-      if (file.existsSync()) {
-        _images.add({'file': file, 'timestamp': file.lastModifiedSync()});
-      } else {
-        // Para URLs de servidor, converter caminho relativo em URL completa
+      if (kIsWeb) {
+        // Na web, todas as imagens são URLs ou não existem localmente
         if (path.startsWith('uploads/')) {
           // É uma URL do servidor, converter para URL completa
           final fullUrl = '$API_BASE_URL/$path';
           _images.add({'url': fullUrl, 'timestamp': DateTime.now()});
         } else if (path.startsWith('http')) {
           _images.add({'url': path, 'timestamp': DateTime.now()});
+        } else {
+          // Para outros casos na web, assumir que é uma URL
+          _images.add({'url': path, 'timestamp': DateTime.now()});
+        }
+      } else {
+        // No mobile, verificar se o arquivo existe fisicamente
+        if (!kIsWeb) {
+          final file = File(path);
+          if (file.existsSync()) {
+            _images.add({'file': file, 'timestamp': file.lastModifiedSync()});
+          } else {
+            // Para URLs de servidor, converter caminho relativo em URL completa
+            if (path.startsWith('uploads/')) {
+              // É uma URL do servidor, converter para URL completa
+              final fullUrl = '$API_BASE_URL/$path';
+              _images.add({'url': fullUrl, 'timestamp': DateTime.now()});
+            } else if (path.startsWith('http')) {
+              _images.add({'url': path, 'timestamp': DateTime.now()});
+            }
+          }
         }
       }
     }
@@ -397,7 +415,11 @@ class _EditReportScreenState extends State<EditReportScreen> {
         fornecedorAcompanhou: fornecedorAcompanhou ?? '',
         observacoes: observacoesController.text,
         imagens: _images.map<String>((img) => 
-          img['file'] != null ? img['file'].path.toString() : (img['url'] ?? '')
+          img['file'] != null ? 
+            (img['file'].runtimeType.toString().contains('XFile') ? 
+              img['file'].name : 
+              img['file'].path.toString()) : 
+            (img['url'] ?? '')
         ).toList(),
         status: 1,
         produtos: selectedProdutos,
@@ -501,14 +523,14 @@ class _EditReportScreenState extends State<EditReportScreen> {
     );
 
     try {
-      // Separar imagens existentes (URLs) e novas (Files) 
+      // Separar imagens existentes (URLs) e novas (Files ou XFiles) 
       final existingImageUrls = <String>[];
-      final newImageFiles = <File>[];
+      final newImageFiles = <dynamic>[];
       
       for (var imageData in _images) {
         if (imageData['file'] != null) {
-          final file = imageData['file'] as File;
-          if (await file.exists()) {
+          final file = imageData['file'];
+          if (kIsWeb || (file is File && await file.exists())) {
             newImageFiles.add(file);
           }
         } else if (imageData['url'] != null) {

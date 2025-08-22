@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:tcis_app/model/full_report_model.dart';
 import 'package:tcis_app/model/api_models.dart';
@@ -109,7 +111,7 @@ class ReportApiService {
   static Future<Map<String, dynamic>> submitReport({
     required FullReportModel report,
     required DataController dataController,
-    List<File>? imageFiles,
+    List<dynamic>? imageFiles, // Mudança: aceita dynamic (File ou XFile)
   }) async {
     try {
       // PASSO 1: Salvar relatório básico no banco (sem PDF ainda)
@@ -150,23 +152,45 @@ class ReportApiService {
         
       }
       
-      // PASSO 3: Gerar PDF com as imagens já no servidor usando o prefixo correto
+      // PASSO 3: Gerar PDF
+      String pdfPath;
+      dynamic pdfFileForUpload; // Pode ser File ou Uint8List
       
-      // Criar uma cópia do relatório com o prefixo atualizado do servidor
-      final reportWithServerPrefix = FullReportModel.fromJson({
-        ...report.toJson(),
-        'prefixo': serverPrefix,
-      });
-      
-      final pdfPath = await _generatePdfWithServerImages(reportWithServerPrefix, imageUrls);
-      final generatedPdfFile = File(pdfPath);
+      if (kIsWeb && imageFiles != null && imageFiles.isNotEmpty) {
+        // Na web: gerar PDF com imagens locais diretamente
+        final reportWithServerPrefix = FullReportModel.fromJson({
+          ...report.toJson(),
+          'prefixo': serverPrefix,
+        });
+        
+        // Na web, vamos gerar o PDF e obter os bytes diretamente
+        pdfPath = await _generatePdfWithLocalImages(reportWithServerPrefix, imageFiles);
+        
+        // Obter bytes do PDF recém-gerado
+        final pdfBytes = getLastGeneratedPdfBytes();
+        if (pdfBytes != null) {
+          pdfFileForUpload = pdfBytes;
+        } else {
+          throw Exception('Erro ao obter bytes do PDF gerado');
+        }
+      } else {
+        // No mobile ou sem imagens: usar método tradicional com download do servidor
+        final reportWithServerPrefix = FullReportModel.fromJson({
+          ...report.toJson(),
+          'prefixo': serverPrefix,
+        });
+        
+        pdfPath = await _generatePdfWithServerImages(reportWithServerPrefix, imageUrls);
+        final generatedPdfFile = File(pdfPath);
+        pdfFileForUpload = generatedPdfFile;
+      }
       
       // PASSO 4: Upload do PDF (usando a mesma pasta das imagens)
       final folderName = '$serverPrefix-$reportId';
+      
       final pdfUrl = await ImageUploadService.uploadPdf(
-        pdfFile: generatedPdfFile,
+        pdfFile: pdfFileForUpload,
         folderName: folderName,
-        reportPrefix: serverPrefix,
       );
       
       if (pdfUrl.isEmpty) {
@@ -185,8 +209,8 @@ class ReportApiService {
       );
       
       if (updateResponse['success'] != true) {
+        throw Exception('Falha ao atualizar relatório: ${updateResponse['message']}');
       }
-      
       
       return {
         'success': true,
@@ -213,30 +237,78 @@ class ReportApiService {
     List<String> serverImageUrls
   ) async {
     final tempImages = <Map<String, dynamic>>[];
-  final baseUrl = ApiService.baseUrl;
+    final baseUrl = ApiService.baseUrl;
+    
+    // Carregar token de autenticação
+    await _apiService.loadToken();
     
     // Baixar cada imagem do servidor e criar arquivo temporário
     for (int i = 0; i < serverImageUrls.length; i++) {
       try {
-        final imageUrl = '$baseUrl/${serverImageUrls[i]}';
+        // Tentar múltiplas estratégias para acessar a imagem
+        Uint8List? imageBytes;
         
-        // Fazer requisição HTTP para baixar a imagem
-        final response = await http.get(Uri.parse(imageUrl));
+        // Estratégia 1: Acesso direto (sem auth)
+        final directUrl = '$baseUrl/${serverImageUrls[i]}';
+        print('Estratégia 1 - URL direta: $directUrl');
         
-        if (response.statusCode == 200) {
+        final directResponse = await http.get(Uri.parse(directUrl));
+        if (directResponse.statusCode == 200) {
+          imageBytes = directResponse.bodyBytes;
+          print('Sucesso com acesso direto');
+        } else {
+          print('Acesso direto falhou: ${directResponse.statusCode}');
+          
+          // Estratégia 2: Acesso com autenticação
+          final authUrl = '$baseUrl/${serverImageUrls[i]}';
+          print('Estratégia 2 - URL com auth: $authUrl');
+          
+          final authResponse = await http.get(
+            Uri.parse(authUrl),
+            headers: _apiService.headers,
+          );
+          
+          if (authResponse.statusCode == 200) {
+            imageBytes = authResponse.bodyBytes;
+            print('Sucesso com autenticação');
+          } else {
+            print('Acesso com auth falhou: ${authResponse.statusCode} - ${authResponse.body}');
+            
+            // Estratégia 3: API específica para download
+            final downloadUrl = '$baseUrl/uploads/download/${Uri.encodeComponent(serverImageUrls[i])}';
+            print('Estratégia 3 - URL download: $downloadUrl');
+            
+            final downloadResponse = await http.get(
+              Uri.parse(downloadUrl),
+              headers: _apiService.headers,
+            );
+            
+            if (downloadResponse.statusCode == 200) {
+              imageBytes = downloadResponse.bodyBytes;
+              print('Sucesso com API de download');
+            } else {
+              print('API download falhou: ${downloadResponse.statusCode} - ${downloadResponse.body}');
+            }
+          }
+        }
+        
+        if (imageBytes != null && imageBytes.isNotEmpty) {
           // Criar arquivo temporário com a imagem baixada
           final tempDir = Directory.systemTemp;
           final tempFile = File('${tempDir.path}/temp_image_$i.jpg');
-          await tempFile.writeAsBytes(response.bodyBytes);
+          await tempFile.writeAsBytes(imageBytes);
           
           tempImages.add({
             'file': tempFile,
             'timestamp': DateTime.now().add(Duration(seconds: i)), // Timestamps diferentes
           });
-          
+          print('Imagem $i processada com sucesso');
         } else {
+          print('Erro ao baixar imagem $i: nenhuma estratégia funcionou');
         }
+        
       } catch (e) {
+        print('Erro ao processar imagem $i: $e');
       }
     }
     
@@ -287,7 +359,7 @@ class ReportApiService {
     required String reportId,
     required FullReportModel report,
     required DataController dataController,
-    List<File>? newImageFiles,
+    List<dynamic>? newImageFiles, // Mudança: aceita dynamic
     File? pdfFile,
     String? existingFolderName,
     List<String>? existingImagePaths,
@@ -320,7 +392,6 @@ class ReportApiService {
         pdfPath = await ImageUploadService.uploadPdf(
           pdfFile: pdfFile,
           folderName: folderName,
-          reportPrefix: report.prefixo,
         );
       } else if (imagePaths.isNotEmpty) {
         // Gerar PDF temporário se há imagens (será regenerado após a atualização)
@@ -330,7 +401,6 @@ class ReportApiService {
         pdfPath = await ImageUploadService.uploadPdf(
           pdfFile: generatedPdfFile,
           folderName: folderName,
-          reportPrefix: report.prefixo,
         );
       }
 
@@ -380,7 +450,6 @@ class ReportApiService {
             final finalPdfPath = await ImageUploadService.uploadPdf(
               pdfFile: generatedPdfFile,
               folderName: folderName,
-              reportPrefix: newPrefix,
             );
             
             // Atualizar o PDF URL no backend
@@ -442,6 +511,63 @@ class ReportApiService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Gera PDF com imagens locais para web
+  static Future<String> _generatePdfWithLocalImages(
+    FullReportModel report, 
+    List<dynamic> localImages
+  ) async {
+    // Converter XFiles para o formato esperado pelo generatePdf
+    final imagesForPdf = <Map<String, dynamic>>[];
+    
+    for (int i = 0; i < localImages.length; i++) {
+      final imageFile = localImages[i];
+      
+      if (kIsWeb && imageFile.runtimeType.toString().contains('XFile')) {
+        // Para web: extrair bytes do XFile
+        final bytes = await imageFile.readAsBytes();
+        imagesForPdf.add({
+          'bytes': bytes,
+          'timestamp': DateTime.now().add(Duration(seconds: i)),
+        });
+      } else {
+        // Para mobile: usar File diretamente
+        imagesForPdf.add({
+          'file': imageFile,
+          'timestamp': DateTime.now().add(Duration(seconds: i)),
+        });
+      }
+    }
+    
+    // Gerar PDF usando a função existente
+    final pdfPath = await generatePdf(
+      prefixoController: TextEditingController(text: report.prefixo),
+      selectedTerminal: report.terminal,
+      selectedProduto: report.produto,
+      selectedProdutos: report.produtos.isNotEmpty ? report.produtos : null,
+      selectedFornecedores: report.fornecedores.isNotEmpty ? report.fornecedores : null,
+      selectedVagao: null, // Campo removido
+      colaborador: report.colaborador,
+      fornecedor: report.fornecedor,
+      selectedValue: null, // Campo removido
+      dataInicioController: TextEditingController(text: report.dataInicio),
+      horarioChegadaController: TextEditingController(text: report.horarioChegada),
+      horarioInicioController: TextEditingController(text: report.horarioInicio),
+      horarioTerminoController: TextEditingController(text: report.horarioTermino),
+      horarioSaidaController: TextEditingController(text: report.horarioSaida),
+      dataTerminoController: TextEditingController(text: report.dataTermino),
+      houveContaminacao: report.houveContaminacao,
+      contaminacaoDescricao: report.contaminacaoDescricao,
+      materialHomogeneo: report.materialHomogeneo,
+      umidadeVisivel: report.umidadeVisivel,
+      houveChuva: report.houveChuva,
+      fornecedorAcompanhou: report.fornecedorAcompanhou,
+      observacoesController: TextEditingController(text: report.observacoes),
+      images: imagesForPdf, // Usar imagens locais
+    );
+    
+    return pdfPath;
   }
 }
 
