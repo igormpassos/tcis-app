@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: tcis_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tcis_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - tcis_network
+
+  # Backend Node.js
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tcis_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@postgres:5432/tcis_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 24h
+      PORT: 3000
+      NODE_ENV: production
+      UPLOAD_DIR: uploads
+      MAX_FILE_SIZE: 10485760
+      ALLOWED_FILE_TYPES: image/jpeg,image/png,image/jpg,application/pdf
+      ALLOWED_ORIGINS: https://${DOMAIN},http://localhost:*
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - tcis_network
+
+  # Frontend Flutter Web (nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: tcis_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - tcis_network
+
+volumes:
+  postgres_data:
+  backend_uploads:
+
+networks:
+  tcis_network:
+    driver: bridge

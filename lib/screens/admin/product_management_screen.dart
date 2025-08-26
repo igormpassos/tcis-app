@@ -267,9 +267,6 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                           supplierId: supplier['id'],
                         );
 
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                        await loadProducts();
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -280,6 +277,9 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                             ),
                           );
                         }
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                        await loadProducts();
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -416,20 +416,20 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       );
                     }
 
-                    Navigator.pop(context);
-                    await loadProducts();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            product == null
-                                ? 'Produto criado com sucesso!'
-                                : 'Produto atualizado com sucesso!',
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              product == null
+                                  ? 'Produto criado com sucesso!'
+                                  : 'Produto atualizado com sucesso!',
+                            ),
+                            backgroundColor: Colors.green,
                           ),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
+                        );
+                      }
+                      Navigator.pop(context);
+                      await loadProducts();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

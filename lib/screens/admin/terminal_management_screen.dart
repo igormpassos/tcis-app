@@ -250,8 +250,6 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                   );
                 }
 
-                Navigator.pop(context);
-                await loadTerminals();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -262,6 +260,8 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                     ),
                   );
                 }
+                Navigator.pop(context);
+                await loadTerminals();
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

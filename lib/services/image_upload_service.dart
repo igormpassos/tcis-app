@@ -43,7 +43,7 @@ class ImageUploadService {
   }) async {
     try {
       final List<String> uploadedPaths = [];
-      final baseUrl = ApiService.baseUrl.replaceAll('/api', '');
+  final baseUrl = ApiService.baseUrl;
 
       for (int i = 0; i < images.length; i++) {
         final image = images[i];
@@ -66,7 +66,7 @@ class ImageUploadService {
         await apiService.loadToken(); // Carregar token salvo
         
         final response = await _dio.post(
-          '$baseUrl/api/uploads/image',
+          '$baseUrl/uploads/image',
           data: formData,
           options: Options(
             headers: {
@@ -108,7 +108,7 @@ class ImageUploadService {
     required String reportPrefix,
   }) async {
     try {
-      final baseUrl = ApiService.apiBaseUrl.replaceAll('/api', '');
+  final baseUrl = ApiService.apiBaseUrl;
       final fileName = '${reportPrefix}_${DateTime.now().millisecondsSinceEpoch}.pdf';
       
       final formData = FormData.fromMap({
@@ -123,7 +123,7 @@ class ImageUploadService {
       await apiService.loadToken();
 
       final response = await _dio.post(
-        '$baseUrl/api/uploads/pdf',
+  '$baseUrl/uploads/pdf',
         data: formData,
         options: Options(
           headers: {

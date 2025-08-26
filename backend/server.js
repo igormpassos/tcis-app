@@ -64,23 +64,23 @@ app.get('/health', (req, res) => {
 });
 
 // Rotas públicas
-app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 
 // Rota de teste sem autenticação
-app.post('/api/test-reports', (req, res) => {
+app.post('/test-reports', (req, res) => {
   console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
   res.json({ success: true, message: 'Test OK', body: req.body });
 });
 
 // Rotas protegidas
-app.use('/api/reports', authenticateToken, reportRoutes);
-app.use('/api/terminals', authenticateToken, terminalRoutes);
-app.use('/api/products', authenticateToken, productRoutes);
-app.use('/api/suppliers', authenticateToken, supplierRoutes);
-app.use('/api/employees', authenticateToken, employeeRoutes);
-app.use('/api/clients', authenticateToken, clientRoutes);
-app.use('/api/uploads', authenticateToken, uploadRoutes);
-app.use('/api/users', authenticateToken, userRoutes);
+app.use('/reports', authenticateToken, reportRoutes);
+app.use('/terminals', authenticateToken, terminalRoutes);
+app.use('/products', authenticateToken, productRoutes);
+app.use('/suppliers', authenticateToken, supplierRoutes);
+app.use('/employees', authenticateToken, employeeRoutes);
+app.use('/clients', authenticateToken, clientRoutes);
+app.use('/uploads', authenticateToken, uploadRoutes);
+app.use('/users', authenticateToken, userRoutes);
 
 // Rota 404
 app.use('*', (req, res) => {
@@ -97,8 +97,6 @@ app.use(errorHandler);
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`🌍 Ambiente: ${process.env.NODE_ENV}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`📱 Para simulador: http://192.168.1.224:${PORT}/health`);
 });
 
 // Graceful shutdown

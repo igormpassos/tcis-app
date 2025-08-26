@@ -33,8 +33,8 @@ class CustomLoadingDialog extends StatelessWidget {
               message,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),

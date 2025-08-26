@@ -43,7 +43,7 @@ class AdminService {
         queryParams['active'] = active.toString();
       }
 
-      final uri = Uri.parse('$baseUrl/api/users').replace(queryParameters: queryParams);
+  final uri = Uri.parse('$baseUrl/users').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders(token));
 
       if (response.statusCode == 200) {
@@ -75,7 +75,7 @@ class AdminService {
       if (name != null && name.isNotEmpty) body['name'] = name;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/users'),
+  Uri.parse('$baseUrl/users'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -107,7 +107,7 @@ class AdminService {
       if (active != null) body['active'] = active;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/users/$userId'),
+  Uri.parse('$baseUrl/users/$userId'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -124,7 +124,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/users/$userId'),
+  Uri.parse('$baseUrl/users/$userId'),
         headers: _getHeaders(token),
       );
 
@@ -155,7 +155,7 @@ class AdminService {
         queryParams['active'] = active.toString();
       }
 
-      final uri = Uri.parse('$baseUrl/api/suppliers').replace(queryParameters: queryParams);
+  final uri = Uri.parse('$baseUrl/suppliers').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders(token));
 
       if (response.statusCode == 200) {
@@ -171,7 +171,7 @@ class AdminService {
   static Future<Map<String, dynamic>> getSuppliersSimple({String? token}) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/suppliers/simple'),
+  Uri.parse('$baseUrl/suppliers/simple'),
         headers: _getHeaders(token),
       );
 
@@ -202,7 +202,7 @@ class AdminService {
       if (address != null && address.isNotEmpty) body['address'] = address;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/suppliers'),
+  Uri.parse('$baseUrl/suppliers'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -236,7 +236,7 @@ class AdminService {
       if (active != null) body['active'] = active;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/suppliers/$supplierId'),
+  Uri.parse('$baseUrl/suppliers/$supplierId'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -253,7 +253,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/suppliers/$supplierId'),
+  Uri.parse('$baseUrl/suppliers/$supplierId'),
         headers: _getHeaders(token),
       );
 
@@ -288,7 +288,7 @@ class AdminService {
         queryParams['active'] = active.toString();
       }
 
-      final uri = Uri.parse('$baseUrl/api/products').replace(queryParameters: queryParams);
+  final uri = Uri.parse('$baseUrl/products').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders(token));
 
       if (response.statusCode == 200) {
@@ -304,7 +304,7 @@ class AdminService {
   static Future<Map<String, dynamic>> getProductsSimple({String? token}) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/products/simple'),
+  Uri.parse('$baseUrl/products/simple'),
         headers: _getHeaders(token),
       );
 
@@ -331,7 +331,7 @@ class AdminService {
       if (category != null && category.isNotEmpty) body['category'] = category;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/products'),
+  Uri.parse('$baseUrl/products'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -361,7 +361,7 @@ class AdminService {
       if (active != null) body['active'] = active;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/products/$productId'),
+  Uri.parse('$baseUrl/products/$productId'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -378,7 +378,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/products/$productId'),
+  Uri.parse('$baseUrl/products/$productId'),
         headers: _getHeaders(token),
       );
 
@@ -395,7 +395,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/products/$productId/suppliers'),
+  Uri.parse('$baseUrl/products/$productId/suppliers'),
         headers: _getHeaders(token),
         body: json.encode({'supplierId': supplierId}),
       );
@@ -413,7 +413,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/products/$productId/suppliers/$supplierId'),
+  Uri.parse('$baseUrl/products/$productId/suppliers/$supplierId'),
         headers: _getHeaders(token),
       );
 
@@ -444,7 +444,7 @@ class AdminService {
         queryParams['active'] = active.toString();
       }
 
-      final uri = Uri.parse('$baseUrl/api/terminals').replace(queryParameters: queryParams);
+  final uri = Uri.parse('$baseUrl/terminals').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders(token));
 
       if (response.statusCode == 200) {
@@ -474,7 +474,7 @@ class AdminService {
       if (location != null && location.isNotEmpty) body['location'] = location;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/terminals'),
+  Uri.parse('$baseUrl/terminals'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -504,7 +504,7 @@ class AdminService {
       if (active != null) body['active'] = active;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/terminals/$terminalId'),
+  Uri.parse('$baseUrl/terminals/$terminalId'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -521,7 +521,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/terminals/$terminalId'),
+  Uri.parse('$baseUrl/terminals/$terminalId'),
         headers: _getHeaders(token),
       );
 
@@ -554,7 +554,7 @@ class AdminService {
       if (startDateTime != null) queryParams['startDateTime'] = startDateTime;
       if (endDateTime != null) queryParams['endDateTime'] = endDateTime;
 
-      final uri = Uri.parse('$baseUrl/api/reports').replace(queryParameters: queryParams);
+  final uri = Uri.parse('$baseUrl/reports').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders(token));
 
       if (response.statusCode == 200) {
@@ -584,7 +584,7 @@ class AdminService {
         queryParams['search'] = search;
       }
 
-      final uri = Uri.parse('$baseUrl/api/clients').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrl/clients').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders(token));
 
       if (response.statusCode == 200) {
@@ -612,7 +612,7 @@ class AdminService {
       if (emails != null && emails.isNotEmpty) body['emails'] = emails;
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/clients'),
+        Uri.parse('$baseUrl/clients'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -638,7 +638,7 @@ class AdminService {
       if (emails != null) body['emails'] = emails;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/clients/$clientId'),
+        Uri.parse('$baseUrl/clients/$clientId'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
@@ -655,7 +655,7 @@ class AdminService {
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/clients/$clientId'),
+        Uri.parse('$baseUrl/clients/$clientId'),
         headers: _getHeaders(token),
       );
 

@@ -37,3 +37,21 @@ Thumbs.db
 # Build
 build/
 dist/
+
+# Banco de dados
+*.db
+*.sqlite
+*.sqlite3
+dev.db
+
+# Arquivos de configuração específicos
+nohup.out
+
+# Certificados e chaves
+*.key
+*.keystore
+*.jks
+*.p12
+*.cer
+*.crt
+*.pem

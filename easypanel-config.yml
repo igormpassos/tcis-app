@@ -1,0 +1,81 @@
+# Configuração para Easypanel
+# Este arquivo contém as configurações específicas para deploy no Easypanel
+
+version: '3.8'
+
+# Template de configuração de serviço para Easypanel
+# Use este como base para criar seus serviços no painel
+
+services:
+  # 1. PostgreSQL Database Service
+  postgres:
+    name: "tcis-postgres"
+    image: "postgres:15-alpine"
+    environment:
+      - "POSTGRES_DB=tcis_db"
+      - "POSTGRES_USER=postgres"
+      - "POSTGRES_PASSWORD=${DB_PASSWORD}"
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    
+  # 2. Backend API Service  
+  backend:
+    name: "tcis-backend"
+    build: "./backend"
+    environment:
+      - "DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/tcis_db"
+      - "JWT_SECRET=${JWT_SECRET}"
+      - "JWT_EXPIRES_IN=24h"
+      - "PORT=3000"
+      - "NODE_ENV=production"
+      - "UPLOAD_DIR=uploads"
+      - "MAX_FILE_SIZE=10485760"
+      - "ALLOWED_FILE_TYPES=image/jpeg,image/png,image/jpg,application/pdf"
+      - "ALLOWED_ORIGINS=https://${DOMAIN},http://localhost:*"
+    volumes:
+      - "backend-uploads:/app/uploads"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    
+  # 3. Frontend Web Service
+  frontend:
+    name: "tcis-frontend"
+    build: "."
+    dockerfile: "Dockerfile.web"
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+# Configurações de volume
+volumes:
+  postgres-data:
+    driver: local
+  backend-uploads:
+    driver: local
+
+# Configurações de rede
+networks:
+  default:
+    driver: bridge
+
+# Variáveis de ambiente necessárias:
+# DB_PASSWORD - Senha do PostgreSQL
+# JWT_SECRET - Chave secreta para JWT
+# DOMAIN - Domínio da aplicação
+
+# Portas expostas:
+# 80 - Frontend (Flutter Web)
+# 3000 - Backend API
+# 5432 - PostgreSQL (apenas internamente)
+
+# Domínios sugeridos:
+# Frontend: ${DOMAIN}
+# API: ${DOMAIN}/api (através do proxy nginx)

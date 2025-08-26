@@ -203,8 +203,6 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                   );
                 }
 
-                Navigator.pop(context);
-                await loadSuppliers();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -215,6 +213,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                       ),
                     );
                   }
+                Navigator.pop(context);
+                await loadSuppliers();
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

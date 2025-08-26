@@ -379,9 +379,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.all(20.0),
-                    child: CompactLoadingWidget(
-                      message: 'Carregando relatórios...',
-                      size: 60.0,
+                    child: Text(
+                      "Carregando relatórios...",
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ),
                 )

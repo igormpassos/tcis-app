@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tcis_app/components/custom_loading_widget.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -134,7 +135,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         context: context,
         barrierDismissible: false,
         builder:
-            (_) => const CustomLoadingDialog(message: "Gerando relatório..."),
+            (_) => const CustomLoadingWidget(message: "Gerando relatório..."),
       );
 
       try {
