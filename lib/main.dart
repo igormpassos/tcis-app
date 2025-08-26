@@ -4,9 +4,6 @@ import 'package:tcis_app/screens/navigation/main_navigation_screen.dart';
 import 'package:tcis_app/screens/reports/create_report.dart';
 import 'package:tcis_app/styles.dart';
 import 'package:tcis_app/screens/login/login.dart';
-import 'package:tcis_app/screens/examples/report_form_example.dart';
-import 'package:tcis_app/screens/test_api_screen.dart';
-import 'package:tcis_app/screens/test_image.dart';
 import 'package:tcis_app/controllers/auth_controller.dart';
 import 'package:tcis_app/controllers/data_controller.dart';
 import 'package:tcis_app/components/custom_loading_widget.dart';
@@ -41,10 +38,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => Login(),
           '/home': (context) => const MainNavigationScreen(),
-          '/reports': (context) => ReportEntryScreen(),
-          '/example-form': (context) => const ReportFormExample(),
-          '/test-api': (context) => const TestApiScreen(),
-          '/test-image': (context) => const TestImageScreen(),
+          '/reports': (context) => ReportEntryScreen()
         },
       ),
     );
