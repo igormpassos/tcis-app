@@ -45,3 +45,41 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Configurações e arquivos de ambiente
+.env
+.env.*
+!.env.example
+*.key
+*.keystore
+*.jks
+*.p12
+*.cer
+*.crt
+*.pem
+*.certSigningRequest
+local.properties
+android/local.properties
+
+# Configurações específicas de ambiente
+# lib/constants.dart  # Descomente esta linha se quiser ignorar configurações de API
+lib/config/api_config.dart
+easypanel-config.yml
+
+# Arquivos de banco de dados
+*.db
+*.sqlite
+*.sqlite3
+dev.db
+
+# Certificados e chaves de desenvolvimento
+CertificateSigningRequest.certSigningRequest
+development.cer
+
+# Scripts de configuração específicos
+docker-compose.*.yml
+!docker-compose.yml
+
+# Uploads e arquivos temporários
+uploads/
+nohup.out
