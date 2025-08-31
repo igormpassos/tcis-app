@@ -335,6 +335,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
         dataController: dataController,
         newImageFiles: newImageFiles.isNotEmpty ? newImageFiles : null,
         existingImagePaths: existingImagePaths,
+        originalReport: widget.report, // Passar o relatório original para comparação
       );
 
       if (mounted) {
@@ -551,6 +552,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
           newImageFiles: newImageFiles.isNotEmpty ? newImageFiles : null,
           existingImagePaths: existingImageUrls,
           existingFolderName: existingFolderName,
+          originalReport: widget.report, // Passar o relatório original para comparação
         );
 
         if (mounted) {

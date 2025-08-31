@@ -207,13 +207,13 @@ class ReportApiService {
     }
   }
 
-  /// Gera PDF usando as imagens já no servidor
+  /// Gera PDF usando as imagens já no servidor (só baixa quando necessário)
   static Future<String> _generatePdfWithServerImages(
     FullReportModel report, 
     List<String> serverImageUrls
   ) async {
     final tempImages = <Map<String, dynamic>>[];
-  final baseUrl = ApiService.baseUrl;
+    final baseUrl = ApiService.baseUrl;
     
     // Baixar cada imagem do servidor e criar arquivo temporário
     for (int i = 0; i < serverImageUrls.length; i++) {
@@ -226,7 +226,7 @@ class ReportApiService {
         if (response.statusCode == 200) {
           // Criar arquivo temporário com a imagem baixada
           final tempDir = Directory.systemTemp;
-          final tempFile = File('${tempDir.path}/temp_image_$i.jpg');
+          final tempFile = File('${tempDir.path}/temp_pdf_image_$i.jpg');
           await tempFile.writeAsBytes(response.bodyBytes);
           
           tempImages.add({
@@ -268,6 +268,7 @@ class ReportApiService {
       images: tempImages,
     );
     
+    
     // Limpar arquivos temporários
     for (var imageData in tempImages) {
       try {
@@ -291,6 +292,7 @@ class ReportApiService {
     File? pdfFile,
     String? existingFolderName,
     List<String>? existingImagePaths,
+    FullReportModel? originalReport, // Relatório original para comparação
   }) async {
     try {
       // Usar pasta existente ou gerar nova
@@ -314,16 +316,32 @@ class ReportApiService {
         imagePaths.addAll(newPaths);
       }
 
+      // Verificar se precisa regenerar PDF
+      bool shouldRegeneratePdf = false;
+      
+      if (pdfFile != null) {
+        // PDF fornecido diretamente
+        shouldRegeneratePdf = false;
+      } else if (newImageFiles != null && newImageFiles.isNotEmpty) {
+        // Há novas imagens - precisa regenerar
+        shouldRegeneratePdf = true;
+      } else if (originalReport != null) {
+        // Verificar se houve mudanças nos dados do relatório que afetam o PDF
+        shouldRegeneratePdf = _hasContentChanges(originalReport, report);
+      }
+
       // Upload do PDF se fornecido
       String? pdfPath;
+      
       if (pdfFile != null) {
+        // PDF fornecido diretamente - fazer upload
         pdfPath = await ImageUploadService.uploadPdf(
           pdfFile: pdfFile,
           folderName: folderName,
           reportPrefix: report.prefixo,
         );
-      } else if (imagePaths.isNotEmpty) {
-        // Gerar PDF temporário se há imagens (será regenerado após a atualização)
+      } else if (shouldRegeneratePdf) {
+        // Só gerar PDF se realmente necessário
         final tempPdfPath = await _generatePdfWithServerImages(report, imagePaths);
         final generatedPdfFile = File(tempPdfPath);
         
@@ -344,14 +362,20 @@ class ReportApiService {
       // Remover campos nulos para não sobrescrever dados existentes
       reportData.removeWhere((key, value) => value == null);
       
-      // Adicionar URLs de imagens se houver
-      if (imagePaths.isNotEmpty) {
+      // SÓ incluir URLs de imagens se houve mudanças nas imagens
+      if (newImageFiles != null && newImageFiles.isNotEmpty) {
+        // Há novas imagens - enviar lista completa (existentes + novas)
         reportData['image_urls'] = imagePaths;
+      } else {
+        // Sem novas imagens - não alterar as imagens no servidor
+        reportData.remove('image_urls');
       }
 
-      // Garantir que o novo PDF URL seja enviado
+      // Garantir que o novo PDF URL seja enviado APENAS se foi gerado
       if (pdfPath != null && pdfPath.isNotEmpty) {
         reportData['pdf_url'] = pdfPath;
+      } else {
+        reportData.remove('pdf_url');
       }
 
       await _apiService.loadToken();
@@ -362,33 +386,9 @@ class ReportApiService {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           final updatedReport = data['data'];
-          final newPrefix = updatedReport['prefix'] ?? report.prefixo;
           
-          // SEMPRE regenerar PDF após qualquer atualização se há imagens ou PDF
-          if (pdfFile != null || imagePaths.isNotEmpty) {
-            
-            // Criar uma cópia do report com dados atualizados (incluindo novo prefixo se houver)
-            final reportWithUpdatedData = FullReportModel.fromJson({
-              ...report.toJson(),
-              'prefixo': newPrefix,
-            });
-            
-            // Gerar novo PDF com os dados atualizados
-            final newPdfPath = await _generatePdfWithServerImages(reportWithUpdatedData, imagePaths);
-            final generatedPdfFile = File(newPdfPath);
-            
-            final finalPdfPath = await ImageUploadService.uploadPdf(
-              pdfFile: generatedPdfFile,
-              folderName: folderName,
-              reportPrefix: newPrefix,
-            );
-            
-            // Atualizar o PDF URL no backend
-            await _apiService.put('/reports/$reportId', {'pdf_url': finalPdfPath});
-            
-            // Atualizar dados de retorno com o novo PDF
-            updatedReport['pdfUrl'] = finalPdfPath;
-          }
+          // PDF já foi gerado e enviado acima se necessário
+          // Não precisamos regenerar novamente aqui
           
           return {
             'success': true,
@@ -442,6 +442,50 @@ class ReportApiService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Verifica se houve mudanças no conteúdo que afetam a geração do PDF
+  static bool _hasContentChanges(FullReportModel original, FullReportModel updated) {
+    // Campos que afetam o conteúdo do PDF
+    final hasChanges = original.prefixo != updated.prefixo ||
+           original.terminal != updated.terminal ||
+           original.colaborador != updated.colaborador ||
+           original.cliente != updated.cliente ||
+           original.dataInicio != updated.dataInicio ||
+           original.horarioInicio != updated.horarioInicio ||
+           original.dataTermino != updated.dataTermino ||
+           original.horarioTermino != updated.horarioTermino ||
+           original.horarioChegada != updated.horarioChegada ||
+           original.horarioSaida != updated.horarioSaida ||
+           original.houveContaminacao != updated.houveContaminacao ||
+           original.contaminacaoDescricao != updated.contaminacaoDescricao ||
+           original.materialHomogeneo != updated.materialHomogeneo ||
+           original.umidadeVisivel != updated.umidadeVisivel ||
+           original.houveChuva != updated.houveChuva ||
+           original.fornecedorAcompanhou != updated.fornecedorAcompanhou ||
+           original.observacoes != updated.observacoes ||
+           !_listEquals(original.produtos, updated.produtos) ||
+           !_listEquals(original.fornecedores, updated.fornecedores);
+    
+    if (hasChanges) {
+      if (original.prefixo != updated.prefixo) print('  - Prefixo: ${original.prefixo} -> ${updated.prefixo}');
+      if (original.terminal != updated.terminal) print('  - Terminal: ${original.terminal} -> ${updated.terminal}');
+      if (original.colaborador != updated.colaborador) print('  - Colaborador: ${original.colaborador} -> ${updated.colaborador}');
+      if (original.cliente != updated.cliente) print('  - Cliente: ${original.cliente} -> ${updated.cliente}');
+      // ... mais logs se necessário
+    } else {
+    }
+    
+    return hasChanges;
+  }
+
+  /// Compara duas listas para igualdade
+  static bool _listEquals<T>(List<T> list1, List<T> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i] != list2[i]) return false;
+    }
+    return true;
   }
 }
 
