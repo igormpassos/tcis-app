@@ -32,7 +32,14 @@ class UserProfileScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          // Verifica se pode voltar, senão vai para home
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                          }
+                        },
                         icon: const Icon(
                           Icons.arrow_back,
                           color: Colors.white,

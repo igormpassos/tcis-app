@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tcis_app/components/custom_loading_widget.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:tcis_app/constants.dart';
 import 'package:tcis_app/utils/utils.dart';
@@ -35,6 +36,9 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
 
   // Estado de conectividade
   bool _hasInternetConnection = false;
+  
+  // Proteção contra múltiplos cliques
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -75,11 +79,26 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       final newImages = await ImageUtils.pickImagesWithMetadata();
       if (newImages.isNotEmpty) {
         setState(() => _images.addAll(newImages));
+        
+        // Mostrar mensagem se alguma imagem foi convertida
+        final convertedCount = newImages.where((img) => img['wasConverted'] == true).length;
+        if (convertedCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$convertedCount imagem(ns) HEIC convertida(s) para JPEG automaticamente'),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 3),
+            )
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro ao carregar imagens: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar imagens: $e'),
+          backgroundColor: Colors.red,
+        )
+      );
     } finally {
       Navigator.of(context).pop();
     }
@@ -170,52 +189,61 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
 
   /// Envia relatório para o servidor
   Future<void> submitToServer() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, preencha todos os campos obrigatórios'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // Proteção contra múltiplos cliques
+    if (_isSubmitting) {
       return;
     }
-
-    // Validar datas/horários
-    final dateTimeValidation = DateTimeUtils.getValidationError(
-      startDateStr: dataInicioController.text,
-      startTimeStr: horarioInicioController.text,
-      endDateStr: dataTerminoController.text,
-      endTimeStr: horarioTerminoController.text,
-    );
-
-    if (dateTimeValidation.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(dateTimeValidation),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (!_hasInternetConnection) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sem conexão com a internet. Salvando como rascunho.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      await saveDraft();
-      return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const CustomLoadingWidget(message: "Enviando relatório..."),
-    );
+    
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
+      if (!(_formKey.currentState?.validate() ?? false)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, preencha todos os campos obrigatórios'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Validar datas/horários
+      final dateTimeValidation = DateTimeUtils.getValidationError(
+        startDateStr: dataInicioController.text,
+        startTimeStr: horarioInicioController.text,
+        endDateStr: dataTerminoController.text,
+        endTimeStr: horarioTerminoController.text,
+      );
+
+      if (dateTimeValidation.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(dateTimeValidation),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (!_hasInternetConnection) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sem conexão com a internet. Salvando como rascunho.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        await saveDraft();
+        return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const CustomLoadingWidget(message: "Enviando relatório..."),
+      );
+
       // Preparar arquivos de imagem
       final imageFiles = <File>[];
       for (var imageData in _images) {
@@ -307,22 +335,100 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
           ),
         );
       }
+    } finally {
+      // Sempre liberar o botão, mesmo se der erro
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
   /// Abrir PDF do servidor
   Future<void> _openServerPdf(String pdfUrl) async {
     try {
-      // Implementar abertura do PDF usando a URL
-      // Pode usar url_launcher ou um viewer interno
+      String fullUrl;
+      
+      // Garantir que temos uma URL completa
+      if (pdfUrl.startsWith('http')) {
+        fullUrl = pdfUrl;
+      } else {
+        fullUrl = '$API_BASE_URL/$pdfUrl';
+      }
+      
+      final uri = Uri.parse(fullUrl);
+      
+      // Mostrar mensagem de carregamento
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Abrindo PDF...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Tentar abrir com aplicação externa (recomendado para PDFs)
+      bool success = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      
+      // Se falhou, tentar com navegador interno
+      if (!success) {
+        success = await launchUrl(
+          uri,
+          mode: LaunchMode.inAppWebView,
+        );
+      }
+      
+      // Se ainda falhou, tentar modo padrão do sistema
+      if (!success) {
+        success = await launchUrl(uri);
+      }
+      
+      // Se todas as tentativas falharam
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Não foi possível abrir o PDF automaticamente'),
+                const SizedBox(height: 8),
+                Text(
+                  'URL: $fullUrl',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Copie a URL e cole no navegador ou instale um leitor de PDF',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 8),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Copiar URL',
+              onPressed: () {
+                // Implementar cópia da URL se necessário
+              },
+            ),
+          ),
+        );
+      }
       
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao abrir PDF: $e'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -379,6 +485,17 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Criar Relatório'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Verifica se pode voltar, senão vai para home
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              }
+            },
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.save),
@@ -487,9 +604,18 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            icon: const Icon(Icons.send),
-                            label: const Text('Enviar relatório'),
-                            onPressed: submitToServer,
+                            icon: _isSubmitting 
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Icon(Icons.send),
+                            label: Text(_isSubmitting ? 'Enviando...' : 'Enviar relatório'),
+                            onPressed: _isSubmitting ? null : submitToServer,
                           ),
                         ),
                         const SizedBox(height: 12),

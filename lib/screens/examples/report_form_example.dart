@@ -76,6 +76,17 @@ class _ReportFormExampleState extends State<ReportFormExample> {
             title: const Text('Novo Relatório'),
             backgroundColor: Theme.of(context).primaryColor,
             foregroundColor: Colors.white,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                // Verifica se pode voltar, senão vai para home
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                }
+              },
+            ),
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),

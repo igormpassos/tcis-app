@@ -46,7 +46,14 @@ class AdminDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      // Verifica se pode voltar, senão vai para home
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                      }
+                    },
                     child: const Text('Voltar'),
                   ),
                 ],
@@ -66,7 +73,14 @@ class AdminDashboardScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          // Verifica se pode voltar, senão vai para home
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                          }
+                        },
                         icon: const Icon(
                           Icons.arrow_back,
                           color: Colors.white,

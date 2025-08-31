@@ -335,6 +335,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
         dataController: dataController,
         newImageFiles: newImageFiles.isNotEmpty ? newImageFiles : null,
         existingImagePaths: existingImagePaths,
+        originalReport: widget.report, // Passar o relatório original para comparação
       );
 
       if (mounted) {
@@ -551,6 +552,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
           newImageFiles: newImageFiles.isNotEmpty ? newImageFiles : null,
           existingImagePaths: existingImageUrls,
           existingFolderName: existingFolderName,
+          originalReport: widget.report, // Passar o relatório original para comparação
         );
 
         if (mounted) {
@@ -653,6 +655,17 @@ class _EditReportScreenState extends State<EditReportScreen> {
       }
       
       final uri = Uri.parse(fullUrl);
+      
+      // Mostrar mensagem de carregamento
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Abrindo PDF...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
       if (await canLaunchUrl(uri)) {
         bool success = await launchUrl(
           uri,
@@ -670,18 +683,86 @@ class _EditReportScreenState extends State<EditReportScreen> {
           success = await launchUrl(uri);
         }
         
+        // Se todas as tentativas falharam
+        if (!success && mounted) {
+          _showPdfErrorDialog(fullUrl);
+        }
+        
       } else {
-        throw Exception('Não foi possível abrir o URL');
+        if (mounted) {
+          _showPdfErrorDialog(fullUrl);
+        }
       }
       
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao abrir PDF: $e'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
+  }
+  
+  /// Mostrar dialog com opções quando não consegue abrir o PDF
+  void _showPdfErrorDialog(String fullUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('PDF não pôde ser aberto'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Não foi possível abrir o PDF automaticamente.'),
+            const SizedBox(height: 16),
+            const Text('Sugestões:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('• Instale um aplicativo leitor de PDF (Adobe Reader, etc.)'),
+            const Text('• Copie a URL e abra no navegador'),
+            const Text('• Verifique sua conexão com a internet'),
+            const SizedBox(height: 16),
+            const Text('URL do PDF:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            SelectableText(
+              fullUrl,
+              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fechar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Tentar abrir no navegador como última tentativa
+              final uri = Uri.parse(fullUrl);
+              try {
+                await launchUrl(
+                  uri,
+                  mode: LaunchMode.externalApplication,
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Tentar Novamente'),
+          ),
+        ],
+      ),
+    );
   }
 
   // Função para selecionar várias imagens da galeria
@@ -697,11 +778,26 @@ class _EditReportScreenState extends State<EditReportScreen> {
       final newImages = await ImageUtils.pickImagesWithMetadata();
       if (newImages.isNotEmpty) {
         setState(() => _images.addAll(newImages));
+        
+        // Mostrar mensagem se alguma imagem foi convertida
+        final convertedCount = newImages.where((img) => img['wasConverted'] == true).length;
+        if (convertedCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$convertedCount imagem(ns) HEIC convertida(s) para JPEG automaticamente'),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 3),
+            )
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro ao carregar imagens: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar imagens: $e'),
+          backgroundColor: Colors.red,
+        )
+      );
     } finally {
       Navigator.of(context).pop();
     }
@@ -719,6 +815,17 @@ class _EditReportScreenState extends State<EditReportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(prefixoController.text),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Verifica se pode voltar, senão vai para home
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+            }
+          },
+        ),
         actions: [
           // Só mostra botão de rascunho se for relatório local ou rascunho
           if (!_isServerReport())
