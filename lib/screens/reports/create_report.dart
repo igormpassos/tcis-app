@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tcis_app/components/custom_loading_widget.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:tcis_app/constants.dart';
 import 'package:tcis_app/utils/utils.dart';
@@ -313,16 +314,87 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   /// Abrir PDF do servidor
   Future<void> _openServerPdf(String pdfUrl) async {
     try {
-      // Implementar abertura do PDF usando a URL
-      // Pode usar url_launcher ou um viewer interno
+      String fullUrl;
+      
+      // Garantir que temos uma URL completa
+      if (pdfUrl.startsWith('http')) {
+        fullUrl = pdfUrl;
+      } else {
+        fullUrl = '$API_BASE_URL/$pdfUrl';
+      }
+      
+      final uri = Uri.parse(fullUrl);
+      
+      // Mostrar mensagem de carregamento
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Abrindo PDF...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Tentar abrir com aplicação externa (recomendado para PDFs)
+      bool success = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      
+      // Se falhou, tentar com navegador interno
+      if (!success) {
+        success = await launchUrl(
+          uri,
+          mode: LaunchMode.inAppWebView,
+        );
+      }
+      
+      // Se ainda falhou, tentar modo padrão do sistema
+      if (!success) {
+        success = await launchUrl(uri);
+      }
+      
+      // Se todas as tentativas falharam
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Não foi possível abrir o PDF automaticamente'),
+                const SizedBox(height: 8),
+                Text(
+                  'URL: $fullUrl',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Copie a URL e cole no navegador ou instale um leitor de PDF',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 8),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Copiar URL',
+              onPressed: () {
+                // Implementar cópia da URL se necessário
+              },
+            ),
+          ),
+        );
+      }
       
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao abrir PDF: $e'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -379,6 +451,17 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Criar Relatório'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Verifica se pode voltar, senão vai para home
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              }
+            },
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.save),

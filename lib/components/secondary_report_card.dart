@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:tcis_app/constants.dart';
 
 class SecondaryreportCard extends StatelessWidget {
   const SecondaryreportCard({
@@ -136,32 +138,42 @@ class SecondaryreportCard extends StatelessWidget {
             icon: Icon(Icons.ios_share_outlined, color: Colors.white),
             onPressed: () async {
               if (pathPdf is String && pathPdf.startsWith('http')) {
-                // É uma URL do servidor - abrir no navegador
+                // É uma URL do servidor - melhorar abertura para Android
                 try {
-                  final uri = Uri.parse(pathPdf);
+                  // Formar URL completa se necessário
+                  String fullUrl = pathPdf.startsWith('http') ? pathPdf : '$API_BASE_URL/$pathPdf';
+                  final uri = Uri.parse(fullUrl);
 
-                  if (await canLaunchUrl(uri)) {
-                    bool success = await launchUrl(
+                  if (Platform.isAndroid) {
+                    // No Android, tentar diferentes modos de abertura
+                    bool launched = await launchUrl(
                       uri,
                       mode: LaunchMode.externalApplication,
                     );
-
-                    if (!success) {
-                      success = await launchUrl(
+                    
+                    if (!launched) {
+                      // Se não conseguir abrir externamente, tentar no navegador interno
+                      launched = await launchUrl(
                         uri,
-                        mode: LaunchMode.inAppWebView,
+                        mode: LaunchMode.inAppBrowserView,
                       );
                     }
-
-                    if (!success) {
-                      success = await launchUrl(uri);
+                    
+                    if (!launched) {
+                      // Último recurso: modo padrão
+                      await launchUrl(uri);
                     }
-
                   } else {
-                    throw Exception('Não foi possível abrir o URL');
+                    // Em outras plataformas, usar verificação de disponibilidade
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      throw Exception('Não foi possível abrir o URL');
+                    }
                   }
                 } catch (e) {
-                  // Handle error silently or show user-friendly message
+                  // Mostrar mensagem de erro mais amigável
+                  debugPrint('Erro ao abrir PDF: $e');
                 }
               } else if (pathPdf is String && pathPdf.isNotEmpty) {
                 // É um arquivo local - abrir com OpenFile
