@@ -417,11 +417,16 @@ router.get('/:id', [
   try {
     const { id } = req.params;
 
+    // Construir condição where baseada na role do usuário
+    const whereCondition = { id };
+    
+    // Se não for admin, adicionar filtro por userId
+    if (req.user.role !== 'ADMIN') {
+      whereCondition.userId = req.user.id;
+    }
+
     const report = await prisma.report.findFirst({
-      where: {
-        id,
-        userId: req.user.id // Usuários só veem seus próprios relatórios
-      },
+      where: whereCondition,
       include: {
         terminal: {
           select: { id: true, name: true, code: true, location: true }
