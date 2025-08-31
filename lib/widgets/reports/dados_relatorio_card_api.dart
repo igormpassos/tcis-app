@@ -60,11 +60,6 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
         if (widget.colaborador?.isEmpty ?? true) {
           widget.onColaboradorChanged(userName);
         }
-        
-        // Para não-admins, sempre define CSN como cliente padrão se não houver um selecionado
-        if (widget.selectedCliente?.isEmpty ?? true) {
-          widget.onClienteChanged('CSN - Companhia Siderúrgica Nacional');
-        }
       } else {
         // Se é admin e não há colaborador selecionado, seleciona o usuário logado por padrão
         // Mas só se não houver um colaborador já definido (modo criação)
@@ -72,10 +67,13 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
           final userName = authController.currentUser?.name ?? authController.currentUser?.username;
           widget.onColaboradorChanged(userName);
         }
-        
-        // Para admins, também define CSN como padrão se não houver cliente selecionado
-        if (widget.selectedCliente?.isEmpty ?? true) {
-          widget.onClienteChanged('CSN - Companhia Siderúrgica Nacional');
+      }
+      
+      // Selecionar automaticamente o primeiro cliente APENAS no modo de criação
+      if (!widget.isEditMode && (widget.selectedCliente?.isEmpty ?? true)) {
+        final dataController = context.read<DataController>();
+        if (dataController.clients.isNotEmpty) {
+          widget.onClienteChanged(dataController.clients.first.name);
         }
       }
     });
@@ -271,70 +269,49 @@ class _DadosRelatorioCardApiState extends State<DadosRelatorioCardApi> {
 
             const SizedBox(height: 16),
             
-            // Cliente Selector - desabilitado para não-admins
+            // Cliente Selector
             const Text('Cliente *'),
-            Consumer<AuthController>(
-              builder: (context, authController, child) {
-                final isAdmin = authController.currentUser?.role == 'ADMIN';
-                
-                return Consumer<DataController>(
-                  builder: (context, dataController, child) {
-                    if (dataController.isLoadingClients) {
-                      return DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          hintText: "Carregando clientes...",
-                          hintStyle: TextStyle(color: LabelColor),
-                        ),
-                        items: const [],
-                        onChanged: null,
-                      );
-                    }
+            Consumer<DataController>(
+              builder: (context, dataController, child) {
+                if (dataController.isLoadingClients) {
+                  return DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      hintText: "Carregando clientes...",
+                      hintStyle: TextStyle(color: LabelColor),
+                    ),
+                    items: const [],
+                    onChanged: null,
+                  );
+                }
 
-                    final clientes = dataController.clients.map((c) => c.name).toList();
+                final clientes = dataController.clients.map((c) => c.name).toList();
 
-                    // Para não-admins, mostra apenas a CSN selecionada como texto não editável
-                    if (!isAdmin) {
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(15),
-                          color: Colors.grey.shade50,
-                        ),
-                        child: Text(
-                          widget.selectedCliente ?? 'CSN - Companhia Siderúrgica Nacional',
-                          style: TextStyle(fontSize: 15, color: TextDarkColor),
-                        ),
-                      );
-                    }
+                // Em modo de edição, preserva o valor atual. Em modo de criação, usa o primeiro se não há seleção
+                String? currentValue;
+                if (widget.isEditMode) {
+                  // Modo de edição: preserva o valor selecionado se válido
+                  currentValue = clientes.contains(widget.selectedCliente) ? widget.selectedCliente : null;
+                } else {
+                  // Modo de criação: usa primeiro cliente se não há seleção
+                  currentValue = clientes.contains(widget.selectedCliente) ? widget.selectedCliente : (clientes.isNotEmpty ? clientes.first : null);
+                }
 
-                    return DropdownButtonFormField<String>(
-                      value: clientes.contains(widget.selectedCliente) ? widget.selectedCliente : null,
-                      hint: Text("Selecione uma opção", style: TextStyle(color: LabelColor)),
-                      style: TextStyle(fontSize: 15, color: TextDarkColor),
-                      borderRadius: BorderRadius.circular(15),
-                      dropdownColor: backgroundColorLight.withAlpha(230),
-                      onChanged: (value) {
-                        if (value == 'Outro') {
-                          _showCustomDialog(
-                            context,
-                            title: 'Qual o Cliente?',
-                            onSubmit: (custom) => widget.onClienteChanged(custom),
-                          );
-                        } else {
-                          widget.onClienteChanged(value);
-                        }
-                      },
-                      items: clientes.map((cliente) {
-                        return DropdownMenuItem<String>(
-                          value: cliente,
-                          child: Text(cliente),
-                        );
-                      }).toList(),
-                      validator: (value) => (widget.selectedCliente?.isEmpty ?? true) ? 'Campo obrigatório' : null,
-                    );
+                return DropdownButtonFormField<String>(
+                  value: currentValue,
+                  hint: Text("Selecione uma opção", style: TextStyle(color: LabelColor)),
+                  style: TextStyle(fontSize: 15, color: TextDarkColor),
+                  borderRadius: BorderRadius.circular(15),
+                  dropdownColor: backgroundColorLight.withAlpha(230),
+                  onChanged: (value) {
+                    widget.onClienteChanged(value);
                   },
+                  items: clientes.map((cliente) {
+                    return DropdownMenuItem<String>(
+                      value: cliente,
+                      child: Text(cliente),
+                    );
+                  }).toList(),
+                  validator: (value) => (value?.isEmpty ?? true) ? 'Campo obrigatório' : null,
                 );
               },
             ),

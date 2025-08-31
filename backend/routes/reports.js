@@ -106,6 +106,13 @@ const createReportValidation = [
       return Number.isInteger(value) && value > 0;
     })
     .withMessage('ID do cliente deve ser um número inteiro positivo ou null'),
+  body('employeeUserId')
+    .optional({ nullable: true })
+    .custom((value) => {
+      if (value === null || value === undefined) return true;
+      return Number.isInteger(value) && value > 0;
+    })
+    .withMessage('ID do colaborador deve ser um número inteiro positivo ou null'),
   body('startDateTime')
     .notEmpty()
     .withMessage('Data/hora de início é obrigatória')
@@ -480,6 +487,7 @@ router.post('/', createReportValidation, validate, async (req, res) => {
       productIds = [], // Array de IDs de produtos
       supplierIds = [], // Array de IDs de fornecedores
       clientId,
+      employeeUserId, // ID do colaborador selecionado
       startDateTime,
       endDateTime,
       arrivalDateTime,
@@ -537,6 +545,16 @@ router.post('/', createReportValidation, validate, async (req, res) => {
       );
     }
 
+    // Validar colaborador (se fornecido)
+    if (employeeUserId) {
+      validationPromises.push(
+        prisma.user.findUnique({ where: { id: employeeUserId } })
+          .then(user => {
+            return !user ? Promise.reject(new Error('Colaborador não encontrado')) : null;
+          })
+      );
+    }
+
     try {
       await Promise.all(validationPromises);
     } catch (validationError) {
@@ -572,8 +590,8 @@ router.post('/', createReportValidation, validate, async (req, res) => {
         prefix: finalPrefix,
         terminalId,
         clientId,
-        userId: req.user.id,
-        createdBy: req.user.id,
+        userId: employeeUserId || req.user.id, // Usar o colaborador selecionado ou o usuário logado
+        createdBy: req.user.id, // Manter sempre quem criou o relatório
         productIds: productIds || [],
         supplierIds: supplierIds || [],
         startDateTime: new Date(startDateTime),
@@ -668,12 +686,19 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificar se o relatório existe e pertence ao usuário
+    // Verificar se o relatório existe
+    // Admins podem editar qualquer relatório, usuários comuns só os próprios
+    const whereCondition = {
+      id
+    };
+    
+    // Se não for admin, adicionar filtro por userId
+    if (req.user.role !== 'ADMIN') {
+      whereCondition.userId = req.user.id;
+    }
+
     const existingReport = await prisma.report.findFirst({
-      where: {
-        id,
-        userId: req.user.id
-      }
+      where: whereCondition
     });
 
     if (!existingReport) {
@@ -693,6 +718,7 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
       productIds,
       supplierIds,
       clientId,
+      employeeUserId, // ID do colaborador selecionado
       startDateTime,
       endDateTime,
       arrivalDateTime,
@@ -746,6 +772,7 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
     if (productIds !== undefined) updateData.productIds = productIds;
     if (supplierIds !== undefined) updateData.supplierIds = supplierIds;
     if (clientId !== undefined) updateData.clientId = clientId;
+    if (employeeUserId !== undefined) updateData.userId = employeeUserId; // Atualizar colaborador
     if (startDateTime !== undefined) updateData.startDateTime = new Date(startDateTime);
     if (endDateTime !== undefined) updateData.endDateTime = new Date(endDateTime);
     if (arrivalDateTime !== undefined) updateData.arrivalDateTime = arrivalDateTime ? new Date(arrivalDateTime) : null;
@@ -806,12 +833,19 @@ router.delete('/:id', [
   try {
     const { id } = req.params;
 
-    // Verificar se o relatório existe e pertence ao usuário
+    // Verificar se o relatório existe
+    // Admins podem excluir qualquer relatório, usuários comuns só os próprios
+    const whereCondition = {
+      id
+    };
+    
+    // Se não for admin, adicionar filtro por userId
+    if (req.user.role !== 'ADMIN') {
+      whereCondition.userId = req.user.id;
+    }
+
     const report = await prisma.report.findFirst({
-      where: {
-        id,
-        userId: req.user.id
-      }
+      where: whereCondition
     });
 
     if (!report) {

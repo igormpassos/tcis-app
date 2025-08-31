@@ -96,17 +96,6 @@ class _EditReportScreenState extends State<EditReportScreen> {
           colaborador = authController.currentUser?.name ?? authController.currentUser?.username;
         });
       }
-      
-      // Para não-admins, sempre define CSN como cliente padrão se não houver um selecionado
-      if (authController.currentUser?.role != 'ADMIN' && (selectedCliente?.isEmpty ?? true)) {
-        setState(() {
-          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
-        });
-      } else if (authController.currentUser?.role == 'ADMIN' && (selectedCliente?.isEmpty ?? true)) {
-        setState(() {
-          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
-        });
-      }
     });
   }
 

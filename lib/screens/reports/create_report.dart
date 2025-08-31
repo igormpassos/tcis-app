@@ -49,13 +49,6 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       if (authController.currentUser?.role != 'ADMIN') {
         setState(() {
           colaborador = authController.currentUser?.name ?? authController.currentUser?.username;
-          // Para não-admins, sempre define CSN como cliente padrão
-          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
-        });
-      } else {
-        // Para admins também define CSN como padrão
-        setState(() {
-          selectedCliente = 'CSN - Companhia Siderúrgica Nacional';
         });
       }
     });
@@ -219,7 +212,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const CustomLoadingDialog(message: "Enviando relatório..."),
+      builder: (_) => const CustomLoadingWidget(message: "Enviando relatório..."),
     );
 
     try {
