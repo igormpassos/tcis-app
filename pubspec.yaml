@@ -57,6 +57,7 @@ dependencies:
   uuid: ^4.4.2
   provider: ^6.1.0
   url_launcher: ^6.3.0
+  heic_to_jpg: ^0.2.0  # Para converter imagens HEIC para JPEG
 
 
   # The following adds the Cupertino Icons font to your application.

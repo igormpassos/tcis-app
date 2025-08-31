@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 
 class RiveUtils {
   static SMIBool getRiveInput(
@@ -39,6 +41,44 @@ String formatDateTime(DateTime dateTime) {
 }
 
 class ImageUtils {
+  /// Converte imagens HEIC para JPEG se necessário
+  static Future<File> convertHeicToJpegIfNeeded(File originalFile) async {
+    if (!originalFile.path.toLowerCase().endsWith('.heic')) {
+      return originalFile; // Não é HEIC, retorna o arquivo original
+    }
+
+    try {
+      // Ler os bytes da imagem HEIC
+      final imageBytes = await originalFile.readAsBytes();
+      
+      // Decodificar usando a biblioteca image (suporta HEIC no iOS/macOS nativamente)
+      final image = img.decodeImage(imageBytes);
+      
+      if (image == null) {
+        print('Não foi possível decodificar imagem HEIC: ${originalFile.path}');
+        return originalFile; // Retorna original se não conseguir converter
+      }
+      
+      // Codificar como JPEG com qualidade 85
+      final jpegBytes = img.encodeJpg(image, quality: 85);
+      
+      // Criar arquivo temporário com extensão .jpg
+      final tempDir = await getTemporaryDirectory();
+      final fileName = originalFile.path.split('/').last.replaceAll('.heic', '.jpg');
+      final jpegFile = File('${tempDir.path}/$fileName');
+      
+      // Escrever bytes JPEG no arquivo
+      await jpegFile.writeAsBytes(jpegBytes);
+      
+      print('Imagem HEIC convertida para JPEG: ${jpegFile.path}');
+      return jpegFile;
+      
+    } catch (e) {
+      print('Erro ao converter HEIC para JPEG: $e');
+      return originalFile; // Retorna original em caso de erro
+    }
+  }
+  
   static Future<DateTime?> getCreationDate(dynamic file) async {
     try {
       // Para web, não podemos acessar EXIF ou propriedades de arquivo
@@ -81,7 +121,7 @@ class ImageUtils {
       if (Platform.isMacOS) {
         const XTypeGroup typeGroup = XTypeGroup(
           label: 'Imagens',
-          extensions: <String>['jpg', 'jpeg', 'png', 'heic', 'webp'],
+          extensions: <String>['jpg', 'jpeg', 'png', 'webp', 'heic'], // Incluir HEIC novamente
         );
         
         final files = await openFiles(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
@@ -92,7 +132,11 @@ class ImageUtils {
         for (final file in files) {
           try {
             final xFile = XFile(file.path);
-            final ioFile = File(file.path);
+            File ioFile = File(file.path);
+            
+            // Converter HEIC para JPEG se necessário
+            ioFile = await convertHeicToJpegIfNeeded(ioFile);
+            
             if (await ioFile.exists()) {
               final creationDate = await ImageUtils.getCreationDate(ioFile) ?? DateTime.now();
               images.add({
@@ -100,10 +144,12 @@ class ImageUtils {
                 'timestamp': creationDate,
                 'path': ioFile.path,
                 'xfile': xFile, // Manter referência XFile para compatibilidade
+                'wasConverted': ioFile.path != file.path, // Flag para indicar se foi convertida
               });
             }
           } catch (e) {
             print('Erro ao processar imagem ${file.path}: $e');
+            // Em caso de erro, ainda adicionar o arquivo original
             images.add({
               'file': File(file.path),
               'timestamp': DateTime.now(),
@@ -133,7 +179,11 @@ class ImageUtils {
               'path': pickedFile.name,
             });
           } else {
-            final file = File(pickedFile.path);
+            File file = File(pickedFile.path);
+            
+            // Converter HEIC para JPEG se necessário
+            file = await convertHeicToJpegIfNeeded(file);
+            
             if (await file.exists()) {
               final creationDate =
                   await ImageUtils.getCreationDate(file) ?? DateTime.now();
@@ -141,12 +191,13 @@ class ImageUtils {
                 'file': file, 
                 'timestamp': creationDate,
                 'path': file.path,
+                'wasConverted': file.path != pickedFile.path, // Flag para indicar se foi convertida
               });
             }
           }
         } catch (e) {
           print('Erro ao processar imagem ${pickedFile.path}: $e');
-          // Adiciona a imagem mesmo com erro, usando timestamp atual
+          // Em caso de erro, ainda adicionar o arquivo original
           images.add({
             'file': kIsWeb ? pickedFile : File(pickedFile.path),
             'timestamp': DateTime.now(),
@@ -158,60 +209,7 @@ class ImageUtils {
       return images;
     } catch (e) {
       print('Erro ao selecionar imagens: $e');
-      return [];
-    }
-  }
-
-  // Método alternativo para macOS - seleção múltipla através de diálogo
-  static Future<List<Map<String, dynamic>>> pickMultipleImagesForMacOS() async {
-    try {
-      final picker = ImagePicker();
-      final List<Map<String, dynamic>> allImages = [];
-      
-      bool continueAdding = true;
-      int imageCount = 0;
-      
-      while (continueAdding && imageCount < 10) { // Limite de 10 imagens
-        final pickedFile = await picker.pickImage(
-          source: ImageSource.gallery,
-          imageQuality: 80, // Reduz qualidade para melhor performance
-        );
-        
-        if (pickedFile == null) {
-          continueAdding = false;
-        } else {
-          try {
-            final file = File(pickedFile.path);
-            if (await file.exists()) {
-              final creationDate = await ImageUtils.getCreationDate(file) ?? DateTime.now();
-              allImages.add({
-                'file': file, 
-                'timestamp': creationDate,
-                'path': file.path,
-              });
-              imageCount++;
-              
-              // Para macOS, pergunta se quer adicionar mais (poderia ser implementado com dialog)
-              // Por enquanto, adiciona apenas uma imagem por vez
-              continueAdding = false;
-            }
-          } catch (e) {
-            print('Erro ao processar imagem ${pickedFile.path}: $e');
-            allImages.add({
-              'file': File(pickedFile.path),
-              'timestamp': DateTime.now(),
-              'path': pickedFile.path,
-            });
-            imageCount++;
-            continueAdding = false;
-          }
-        }
-      }
-      
-      return allImages;
-    } catch (e) {
-      print('Erro ao selecionar imagens para macOS: $e');
-      return [];
+      rethrow;
     }
   }
 }

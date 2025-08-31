@@ -778,11 +778,26 @@ class _EditReportScreenState extends State<EditReportScreen> {
       final newImages = await ImageUtils.pickImagesWithMetadata();
       if (newImages.isNotEmpty) {
         setState(() => _images.addAll(newImages));
+        
+        // Mostrar mensagem se alguma imagem foi convertida
+        final convertedCount = newImages.where((img) => img['wasConverted'] == true).length;
+        if (convertedCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$convertedCount imagem(ns) HEIC convertida(s) para JPEG automaticamente'),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 3),
+            )
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro ao carregar imagens: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar imagens: $e'),
+          backgroundColor: Colors.red,
+        )
+      );
     } finally {
       Navigator.of(context).pop();
     }

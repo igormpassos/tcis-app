@@ -36,6 +36,9 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
 
   // Estado de conectividade
   bool _hasInternetConnection = false;
+  
+  // Proteção contra múltiplos cliques
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -76,11 +79,26 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       final newImages = await ImageUtils.pickImagesWithMetadata();
       if (newImages.isNotEmpty) {
         setState(() => _images.addAll(newImages));
+        
+        // Mostrar mensagem se alguma imagem foi convertida
+        final convertedCount = newImages.where((img) => img['wasConverted'] == true).length;
+        if (convertedCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$convertedCount imagem(ns) HEIC convertida(s) para JPEG automaticamente'),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 3),
+            )
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro ao carregar imagens: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar imagens: $e'),
+          backgroundColor: Colors.red,
+        )
+      );
     } finally {
       Navigator.of(context).pop();
     }
@@ -171,52 +189,61 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
 
   /// Envia relatório para o servidor
   Future<void> submitToServer() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, preencha todos os campos obrigatórios'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // Proteção contra múltiplos cliques
+    if (_isSubmitting) {
       return;
     }
-
-    // Validar datas/horários
-    final dateTimeValidation = DateTimeUtils.getValidationError(
-      startDateStr: dataInicioController.text,
-      startTimeStr: horarioInicioController.text,
-      endDateStr: dataTerminoController.text,
-      endTimeStr: horarioTerminoController.text,
-    );
-
-    if (dateTimeValidation.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(dateTimeValidation),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (!_hasInternetConnection) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sem conexão com a internet. Salvando como rascunho.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      await saveDraft();
-      return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const CustomLoadingWidget(message: "Enviando relatório..."),
-    );
+    
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
+      if (!(_formKey.currentState?.validate() ?? false)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, preencha todos os campos obrigatórios'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Validar datas/horários
+      final dateTimeValidation = DateTimeUtils.getValidationError(
+        startDateStr: dataInicioController.text,
+        startTimeStr: horarioInicioController.text,
+        endDateStr: dataTerminoController.text,
+        endTimeStr: horarioTerminoController.text,
+      );
+
+      if (dateTimeValidation.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(dateTimeValidation),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (!_hasInternetConnection) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sem conexão com a internet. Salvando como rascunho.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        await saveDraft();
+        return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const CustomLoadingWidget(message: "Enviando relatório..."),
+      );
+
       // Preparar arquivos de imagem
       final imageFiles = <File>[];
       for (var imageData in _images) {
@@ -307,6 +334,13 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      // Sempre liberar o botão, mesmo se der erro
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
@@ -570,9 +604,18 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            icon: const Icon(Icons.send),
-                            label: const Text('Enviar relatório'),
-                            onPressed: submitToServer,
+                            icon: _isSubmitting 
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Icon(Icons.send),
+                            label: Text(_isSubmitting ? 'Enviando...' : 'Enviar relatório'),
+                            onPressed: _isSubmitting ? null : submitToServer,
                           ),
                         ),
                         const SizedBox(height: 12),
