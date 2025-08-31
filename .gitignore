@@ -62,7 +62,7 @@ local.properties
 android/local.properties
 
 # Configurações específicas de ambiente
-# lib/constants.dart  # Descomente esta linha se quiser ignorar configurações de API
+lib/constants.dart  # Arquivo com configurações de API e constantes sensíveis
 lib/config/api_config.dart
 easypanel-config.yml
 

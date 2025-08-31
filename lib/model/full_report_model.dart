@@ -153,6 +153,7 @@ class FullReportModel {
       produto: serverData['product']?['name'] ?? '',
       colaborador: serverData['user']?['name'] ?? '',
       fornecedor: serverData['supplier']?['name'],
+      cliente: serverData['client']?['name'],
       // Extrair dados dos arrays para compatibilidade
       produtos: serverData['products'] != null 
           ? List<String>.from(serverData['products'].map((p) => p['name']))
