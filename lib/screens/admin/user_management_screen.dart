@@ -208,12 +208,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   throw Exception(response['message'] ?? 'Erro ao criar usuário');
                 }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Erro ao criar usuário: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erro ao criar usuário: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Criar'),
@@ -344,12 +346,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       throw Exception(response['message'] ?? 'Erro ao atualizar usuário');
                     }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erro ao atualizar usuário: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao atualizar usuário: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               child: const Text('Salvar'),

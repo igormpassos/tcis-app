@@ -75,13 +75,46 @@ class AdminService {
       if (name != null && name.isNotEmpty) body['name'] = name;
 
       final response = await http.post(
-  Uri.parse('$baseUrl/users'),
+        Uri.parse('$baseUrl/users'),
         headers: _getHeaders(token),
         body: json.encode(body),
       );
 
-      return json.decode(response.body);
+      final result = json.decode(response.body);
+      
+      // Se não foi sucesso, extrair detalhes do erro para mostrar mensagem específica
+      if (!result['success']) {
+        String errorMessage = result['message'] ?? 'Erro desconhecido';
+        
+        // Se há erros de validação detalhados, mostrar o específico
+        if (result['errors'] != null && result['errors'] is List) {
+          final errors = result['errors'] as List;
+          final errorMessages = errors.map((error) => error['message'] ?? error['msg']).toList();
+          
+          // Priorizar mensagens mais específicas sobre senha
+          final passwordError = errorMessages.firstWhere(
+            (msg) => msg.toString().toLowerCase().contains('senha'), 
+            orElse: () => null
+          );
+          
+          if (passwordError != null) {
+            throw Exception(passwordError);
+          }
+          
+          // Se não há erro de senha, mostrar o primeiro erro
+          if (errorMessages.isNotEmpty) {
+            throw Exception(errorMessages.first);
+          }
+        }
+        
+        throw Exception(errorMessage);
+      }
+      
+      return result;
     } catch (e) {
+      if (e.toString().contains('Exception:')) {
+        rethrow;
+      }
       throw Exception('Erro ao criar usuário: $e');
     }
   }
