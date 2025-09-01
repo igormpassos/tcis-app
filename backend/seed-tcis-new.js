@@ -179,13 +179,20 @@ async function main() {
   console.log('🔗 Relacionamentos produto-fornecedor criados:', productSupplierRelations.length);
 
   // Criar usuários
-  console.log('👥 Criando usuários...');
+  console.log('👥 Criando/atualizando usuários...');
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash('tcis', saltRounds);
   
   const users = await Promise.all([
-    prisma.user.create({
-      data: {
+    prisma.user.upsert({
+      where: { username: 'tcis' },
+      update: {
+        password: hashedPassword,
+        email: 'admin@tcis.com.br',
+        name: 'Administrador TCIS',
+        role: 'ADMIN'
+      },
+      create: {
         username: 'tcis',
         password: hashedPassword,
         email: 'admin@tcis.com.br',
@@ -195,7 +202,7 @@ async function main() {
     }),
     
   ]);
-  console.log('👥 Usuários criados:', users.length);
+  console.log('👥 Usuários criados/atualizados:', users.length);
 
   // Criar clientes
   console.log('🏢 Criando clientes...');
