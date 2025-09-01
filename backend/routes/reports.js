@@ -777,17 +777,7 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
     if (productIds !== undefined) updateData.productIds = productIds;
     if (supplierIds !== undefined) updateData.supplierIds = supplierIds;
     if (clientId !== undefined) updateData.clientId = clientId;
-    if (employeeUserId !== undefined) {
-      console.log('🔍 employeeUserId recebido:', employeeUserId, 'type:', typeof employeeUserId);
-      // Garantir que é um número inteiro
-      const parsedEmployeeUserId = parseInt(employeeUserId, 10);
-      if (!isNaN(parsedEmployeeUserId) && parsedEmployeeUserId > 0) {
-        updateData.userId = parsedEmployeeUserId;
-        console.log('✅ userId será atualizado para:', parsedEmployeeUserId);
-      } else {
-        console.log('❌ employeeUserId inválido, mantendo userId original');
-      }
-    }
+    if (employeeUserId !== undefined) updateData.userId = employeeUserId; // Atualizar colaborador
     if (startDateTime !== undefined) updateData.startDateTime = new Date(startDateTime);
     if (endDateTime !== undefined) updateData.endDateTime = new Date(endDateTime);
     if (arrivalDateTime !== undefined) updateData.arrivalDateTime = arrivalDateTime ? new Date(arrivalDateTime) : null;
@@ -807,8 +797,6 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
     if (pdfUrl !== undefined) updateData.pdfUrl = pdfUrl;
     if (image_urls !== undefined) updateData.imageUrls = image_urls;
     if (imageUrls !== undefined) updateData.imageUrls = imageUrls;
-
-    console.log('📋 updateData final:', JSON.stringify(updateData, null, 2));
 
     // Atualizar relatório
     const report = await prisma.report.update({
