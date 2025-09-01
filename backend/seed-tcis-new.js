@@ -62,10 +62,8 @@ async function main() {
     // ECKOMINING
     prisma.product.create({ data: { name: 'FSEC', code: 'FSEC', category: 'Minério de Ferro', description: 'Produto da ECKOMINING' }}),
     prisma.product.create({ data: { name: 'FSE2', code: 'FSE2', category: 'Minério de Ferro', description: 'Produto da ECKOMINING' }}),
-    prisma.product.create({ data: { name: 'GRANULADO (EKO)', code: 'GRAN_EKO', category: 'Minério de Ferro', description: 'Granulado da ECKOMINING' }}),
     
     // LHG
-    prisma.product.create({ data: { name: 'GRANULADO (LHG)', code: 'GRAN_LHG', category: 'Minério de Ferro', description: 'Granulado da LHG' }}),
     prisma.product.create({ data: { name: 'GRANULADO/SINTER (LHG)', code: 'GRAN_SINT_LHG', category: 'Minério de Ferro', description: 'Granulado/Sinter da LHG' }}),
     
     // FERRO+
@@ -89,13 +87,9 @@ async function main() {
     prisma.product.create({ data: { name: 'FSML', code: 'FSML', category: 'Minério de Ferro', description: 'Produto da SERRA LOPES' }}),
     
     // VETRIA
-    prisma.product.create({ data: { name: 'GRANULADO (VETRIA)', code: 'GRAN_VET', category: 'Minério de Ferro', description: 'Granulado da VETRIA' }}),
     
-    // 4B
-    prisma.product.create({ data: { name: 'GRANULADO (4B)', code: 'GRAN_4B', category: 'Minério de Ferro', description: 'Granulado da 4B' }}),
-    
-    // 3A
-    prisma.product.create({ data: { name: 'GRANULADO (3A)', code: 'GRAN_3A', category: 'Minério de Ferro', description: 'Granulado da 3A' }}),
+    // Produto unificado
+    prisma.product.create({ data: { name: 'GRANULADO', code: 'GRAN', category: 'Minério de Ferro', description: 'Granulado de minério de ferro' }}),
     
     // BEMISA
     prisma.product.create({ data: { name: 'FMBE', code: 'FMBE', category: 'Minério de Ferro', description: 'Produto da BEMISA' }}),
@@ -119,10 +113,8 @@ async function main() {
     // ECKOMINING
     { productName: 'FSEC', supplierName: 'ECKOMINING' },
     { productName: 'FSE2', supplierName: 'ECKOMINING' },
-    { productName: 'GRANULADO (EKO)', supplierName: 'ECKOMINING' },
     
     // LHG
-    { productName: 'GRANULADO (LHG)', supplierName: 'LHG' },
     { productName: 'GRANULADO/SINTER (LHG)', supplierName: 'LHG' },
     
     // FERRO+
@@ -146,13 +138,11 @@ async function main() {
     { productName: 'FSML', supplierName: 'SERRA LOPES' },
     
     // VETRIA
-    { productName: 'GRANULADO (VETRIA)', supplierName: 'VETRIA' },
-    
-    // 4B
-    { productName: 'GRANULADO (4B)', supplierName: '4B' },
-    
-    // 3A
-    { productName: 'GRANULADO (3A)', supplierName: '3A' },
+    { productName: 'GRANULADO', supplierName: 'VETRIA' },
+    { productName: 'GRANULADO', supplierName: '4B' },
+    { productName: 'GRANULADO', supplierName: '3A' },
+    { productName: 'GRANULADO', supplierName: 'ECKOMINING' },
+    { productName: 'GRANULADO', supplierName: 'LHG' },
     
     // BEMISA
     { productName: 'FMBE', supplierName: 'BEMISA' },
