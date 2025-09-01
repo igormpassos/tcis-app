@@ -24,6 +24,9 @@ const { authenticateToken } = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configurar proxy trust para ambientes com load balancer/proxy
+app.set('trust proxy', true);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -64,23 +67,23 @@ app.get('/health', (req, res) => {
 });
 
 // Rotas públicas
-app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 
 // Rota de teste sem autenticação
-app.post('/api/test-reports', (req, res) => {
+app.post('/test-reports', (req, res) => {
   console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
   res.json({ success: true, message: 'Test OK', body: req.body });
 });
 
 // Rotas protegidas
-app.use('/api/reports', authenticateToken, reportRoutes);
-app.use('/api/terminals', authenticateToken, terminalRoutes);
-app.use('/api/products', authenticateToken, productRoutes);
-app.use('/api/suppliers', authenticateToken, supplierRoutes);
-app.use('/api/employees', authenticateToken, employeeRoutes);
-app.use('/api/clients', authenticateToken, clientRoutes);
-app.use('/api/uploads', authenticateToken, uploadRoutes);
-app.use('/api/users', authenticateToken, userRoutes);
+app.use('/reports', authenticateToken, reportRoutes);
+app.use('/terminals', authenticateToken, terminalRoutes);
+app.use('/products', authenticateToken, productRoutes);
+app.use('/suppliers', authenticateToken, supplierRoutes);
+app.use('/employees', authenticateToken, employeeRoutes);
+app.use('/clients', authenticateToken, clientRoutes);
+app.use('/uploads', authenticateToken, uploadRoutes);
+app.use('/users', authenticateToken, userRoutes);
 
 // Rota 404
 app.use('*', (req, res) => {
