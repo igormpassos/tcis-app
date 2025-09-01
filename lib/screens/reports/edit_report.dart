@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -67,6 +68,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
   
   // Estado de conectividade
   bool _hasInternetConnection = false;
+  StreamSubscription<bool>? _connectivitySubscription;
 
   void limparDropdownsVazios() {
     if (selectedTerminal?.isEmpty ?? false) selectedTerminal = null;
@@ -87,7 +89,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
     // Depois carregar dados da API e verificar conectividade
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DataController>().loadAllData();
-      _checkConnectivity();
+      _setupConnectivityMonitoring();
       
       // Se não há colaborador definido e não é admin, define o usuário logado
       final authController = context.read<AuthController>();
@@ -99,12 +101,36 @@ class _EditReportScreenState extends State<EditReportScreen> {
     });
   }
 
+  /// Configura o monitoramento de conectividade em tempo real
+  void _setupConnectivityMonitoring() {
+    // Verifica conectividade inicial imediatamente
+    _checkConnectivity();
+    
+    // Configura listener para mudanças de conectividade
+    _connectivitySubscription = ConnectivityService.onInternetConnectivityChanged()
+        .listen((bool hasConnection) {
+      if (mounted) {
+        setState(() {
+          _hasInternetConnection = hasConnection;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
   /// Verifica conectividade com a internet
   Future<void> _checkConnectivity() async {
-    final hasConnection = await ConnectivityService.hasInternetConnection();
-    setState(() {
-      _hasInternetConnection = hasConnection;
-    });
+    final hasConnection = await ConnectivityService.forceCheckInternetConnection();
+    if (mounted) {
+      setState(() {
+        _hasInternetConnection = hasConnection;
+      });
+    }
   }
 
   void _loadExistingData() {

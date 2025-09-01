@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -36,6 +37,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
 
   // Estado de conectividade
   bool _hasInternetConnection = false;
+  StreamSubscription<bool>? _connectivitySubscription;
   
   // Proteção contra múltiplos cliques
   bool _isSubmitting = false;
@@ -46,7 +48,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     // Carregar dados da API quando a tela inicializar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DataController>().loadAllData();
-      _checkConnectivity();
+      _setupConnectivityMonitoring();
       
       // Se não é admin, define o colaborador como o usuário logado
       final authController = context.read<AuthController>();
@@ -58,12 +60,36 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     });
   }
 
+  /// Configura o monitoramento de conectividade em tempo real
+  void _setupConnectivityMonitoring() {
+    // Verifica conectividade inicial imediatamente
+    _checkConnectivity();
+    
+    // Configura listener para mudanças de conectividade
+    _connectivitySubscription = ConnectivityService.onInternetConnectivityChanged()
+        .listen((bool hasConnection) {
+      if (mounted) {
+        setState(() {
+          _hasInternetConnection = hasConnection;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
   /// Verifica conectividade com a internet
   Future<void> _checkConnectivity() async {
-    final hasConnection = await ConnectivityService.hasInternetConnection();
-    setState(() {
-      _hasInternetConnection = hasConnection;
-    });
+    final hasConnection = await ConnectivityService.forceCheckInternetConnection();
+    if (mounted) {
+      setState(() {
+        _hasInternetConnection = hasConnection;
+      });
+    }
   }
 
   // Função para selecionar várias imagens da galeria
