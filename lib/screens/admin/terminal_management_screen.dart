@@ -148,7 +148,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               TextField(
                 controller: codeController,
                 decoration: const InputDecoration(
@@ -156,7 +156,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               TextField(
                 controller: prefixController,
                 decoration: const InputDecoration(
@@ -165,7 +165,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                   hintText: 'Ex: TSA, VLB, etc.',
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               TextField(
                 controller: locationController,
                 decoration: const InputDecoration(
@@ -173,7 +173,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               TextField(
                 controller: descriptionController,
                 maxLines: 3,
@@ -185,7 +185,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
               if (terminal != null) // Só mostra o switch para terminais existentes
                 Column(
                   children: [
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     StatefulBuilder(
                       builder: (context, setState) => Row(
                         children: [
@@ -210,10 +210,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
+          
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isEmpty || codeController.text.isEmpty) {
@@ -273,6 +270,12 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
             },
             child: Text(terminal == null ? 'Criar' : 'Salvar'),
           ),
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+          ),
         ],
       ),
     );
@@ -291,6 +294,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: colorPrimary,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [
@@ -368,7 +372,7 @@ class _TerminalManagementScreenState extends State<TerminalManagementScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(Icons.location_on_outlined, size: 64, color: Colors.grey[400]),
-                                      const SizedBox(height: 16),
+                                      const SizedBox(height: 10),
                                       Text(
                                         searchQuery.isEmpty 
                                             ? 'Nenhum terminal encontrado'

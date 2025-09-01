@@ -23,6 +23,7 @@ class UserProfileScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: colorPrimary,
+          resizeToAvoidBottomInset: false,
           body: SafeArea(
             child: Column(
               children: [
@@ -93,8 +94,12 @@ class UserProfileScreen extends StatelessWidget {
                         topRight: Radius.circular(30),
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.of(context).size.width < 600 ? 20 : 30,
+                        vertical: 10,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -102,6 +107,7 @@ class UserProfileScreen extends StatelessWidget {
                           
                           // Nome
                           _buildInfoCard(
+                            context,
                             'Nome',
                             user.name ?? 'Não informado',
                             Icons.person,
@@ -111,6 +117,7 @@ class UserProfileScreen extends StatelessWidget {
                           
                           // Username
                           _buildInfoCard(
+                            context,
                             'Usuário',
                             user.username,
                             Icons.account_circle,
@@ -120,6 +127,7 @@ class UserProfileScreen extends StatelessWidget {
                           
                           // Email
                           _buildInfoCard(
+                            context,
                             'Email',
                             user.email ?? 'Não informado',
                             Icons.email,
@@ -129,12 +137,13 @@ class UserProfileScreen extends StatelessWidget {
                           
                           // Role
                           _buildInfoCard(
+                            context,
                             'Função',
                             _getRoleDisplayName(user.role),
                             Icons.work,
                           ),
                           
-                          const Spacer(),
+                          const SizedBox(height: 20),
                           
                           // Botão de Logout
                           SizedBox(
@@ -171,7 +180,7 @@ class UserProfileScreen extends StatelessWidget {
                             ),
                           ),
                           
-                          const SizedBox(height: 20),
+                          SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 40 : 20),
                         ],
                       ),
                     ),
@@ -185,9 +194,9 @@ class UserProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(String label, String value, IconData icon) {
+  Widget _buildInfoCard(BuildContext context, String label, String value, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 16 : 20),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(15),
@@ -198,7 +207,7 @@ class UserProfileScreen extends StatelessWidget {
           Icon(
             icon,
             color: colorPrimary,
-            size: 24,
+            size: MediaQuery.of(context).size.width < 600 ? 22 : 24,
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -208,7 +217,7 @@ class UserProfileScreen extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: MediaQuery.of(context).size.width < 600 ? 12 : 14,
                     color: Colors.grey[600],
                     fontWeight: FontWeight.w500,
                   ),
@@ -216,11 +225,13 @@ class UserProfileScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

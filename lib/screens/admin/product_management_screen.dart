@@ -330,7 +330,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: codeController,
                     decoration: const InputDecoration(
@@ -338,7 +338,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: categoryController,
                     decoration: const InputDecoration(
@@ -346,7 +346,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: descriptionController,
                     maxLines: 3,
@@ -359,10 +359,6 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
               ElevatedButton(
                 onPressed: () async {
                   if (nameController.text.isEmpty ||
@@ -416,20 +412,20 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       );
                     }
 
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              product == null
-                                  ? 'Produto criado com sucesso!'
-                                  : 'Produto atualizado com sucesso!',
-                            ),
-                            backgroundColor: Colors.green,
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            product == null
+                                ? 'Produto criado com sucesso!'
+                                : 'Produto atualizado com sucesso!',
                           ),
-                        );
-                      }
-                      Navigator.pop(context);
-                      await loadProducts();
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                    Navigator.pop(context);
+                    await loadProducts();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -440,6 +436,12 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                   }
                 },
                 child: Text(product == null ? 'Criar' : 'Salvar'),
+              ),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
               ),
             ],
           ),
@@ -465,6 +467,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: colorPrimary,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [
@@ -553,7 +556,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                                       size: 64,
                                       color: Colors.grey[400],
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 10),
                                     Text(
                                       searchQuery.isEmpty
                                           ? 'Nenhum produto encontrado'
@@ -653,11 +656,12 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                                                 );
                                                 break;
                                               case 'delete':
-                                                final confirm = await DeleteConfirmationDialog.show(
-                                                  context: context,
-                                                  itemType: 'produto',
-                                                  itemName: product['name'],
-                                                );
+                                                final confirm =
+                                                    await DeleteConfirmationDialog.show(
+                                                      context: context,
+                                                      itemType: 'produto',
+                                                      itemName: product['name'],
+                                                    );
                                                 if (confirm == true) {
                                                   await deleteProduct(
                                                     product['id'],

@@ -64,6 +64,7 @@ class AdminDashboardScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: colorPrimary,
+          resizeToAvoidBottomInset: false,
           body: SafeArea(
             child: Column(
               children: [
@@ -114,14 +115,17 @@ class AdminDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(30),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.of(context).size.width < 600 ? 20 : 30,
+                        vertical: 30,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Gerenciamento',
                             style: TextStyle(
-                              fontSize: 24,
+                              fontSize: MediaQuery.of(context).size.width < 600 ? 20 : 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
@@ -130,7 +134,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           Text(
                             'Gerencie usuários, fornecedores, produtos e relatórios',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
                               color: Colors.grey[600],
                             ),
                           ),
@@ -159,14 +163,21 @@ class AdminDashboardScreen extends StatelessWidget {
                                   crossAxisCount = 3;
                                   childAspectRatio = 0.9;
                                   iconSize = 32;
-                                } else {
-                                  // Mobile
+                                } else if (constraints.maxWidth > 400) {
+                                  // Mobile grande
                                   crossAxisCount = 2;
                                   childAspectRatio = 1.0;
                                   iconSize = 32;
+                                } else {
+                                  // Mobile pequeno
+                                  crossAxisCount = 2;
+                                  childAspectRatio = 0.85;
+                                  iconSize = 28;
                                 }
 
                                 return GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const BouncingScrollPhysics(),
                                   crossAxisCount: crossAxisCount,
                                   crossAxisSpacing: 15,
                                   mainAxisSpacing: 15,
@@ -286,7 +297,7 @@ class AdminDashboardScreen extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(MediaQuery.of(context).size.width < 600 ? 12 : 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -303,25 +314,31 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width < 600 ? 14 : 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+              Flexible(
+                child: Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: MediaQuery.of(context).size.width < 600 ? 10 : 12,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

@@ -241,7 +241,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const CustomLoadingWidget(message: "Enviando relatório..."),
+        builder: (_) => const CustomLoadingDialog(message: "Enviando relatório..."),
       );
 
       // Preparar arquivos de imagem

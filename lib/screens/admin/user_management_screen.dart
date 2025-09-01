@@ -106,72 +106,85 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Criar Novo Usuário'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  border: OutlineInputBorder(),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Text(
+          'Criar Novo Usuário',
+          style: TextStyle(
+            color: colorPrimary,
+            fontWeight: FontWeight.w500,
+            fontSize: 20,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome',
+                    border: OutlineInputBorder(),
+
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome de usuário',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome de usuário',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Senha',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Senha',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'Função',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: selectedRole,
+                  decoration: const InputDecoration(
+                    labelText: 'Função',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'USER', child: Text('Usuário')),
+                    DropdownMenuItem(value: 'ADMIN', child: Text('Administrador')),
+                  ],
+                  onChanged: (value) => selectedRole = value!,
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'USER', child: Text('Usuário')),
-                  DropdownMenuItem(value: 'ADMIN', child: Text('Administrador')),
-                ],
-                onChanged: (value) => selectedRole = value!,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
+          
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.isEmpty || 
+              if (nameController.text.isEmpty ||
                   usernameController.text.isEmpty ||
                   passwordController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Preencha todos os campos obrigatórios')),
+                  const SnackBar(
+                    content: Text('Preencha todos os campos obrigatórios'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
                 return;
               }
@@ -188,18 +201,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   token: token,
                   name: nameController.text,
                   username: usernameController.text,
-                  email: emailController.text.isEmpty ? null : emailController.text,
+                  email: emailController.text.isNotEmpty ? emailController.text : null,
                   password: passwordController.text,
                   role: selectedRole,
                 );
-
+                
                 if (response['success']) {
                   Navigator.pop(context);
                   await loadUsers();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Usuário criado com sucesso!'),
+                        content: Text('Usuário criado com sucesso'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -208,17 +221,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   throw Exception(response['message'] ?? 'Erro ao criar usuário');
                 }
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erro ao criar usuário: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Erro: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorPrimary,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Criar'),
+          ),
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
           ),
         ],
       ),
@@ -237,12 +258,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Editar Usuário'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Text(
+            'Editar Usuário',
+            style: TextStyle(
+              color: colorPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
@@ -250,7 +281,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 TextField(
                   controller: usernameController,
                   decoration: const InputDecoration(
@@ -258,7 +289,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 TextField(
                   controller: emailController,
                   decoration: const InputDecoration(
@@ -266,7 +297,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
@@ -275,7 +306,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: selectedRole,
                   decoration: const InputDecoration(
@@ -288,7 +319,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   ],
                   onChanged: (value) => selectedRole = value!,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 CheckboxListTile(
                   title: const Text('Usuário ativo'),
                   value: isActive,
@@ -298,10 +329,16 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+        ),
+        actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+              ],
             ),
             ElevatedButton(
               onPressed: () async {
@@ -377,6 +414,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: colorPrimary,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [
@@ -458,7 +496,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
-                                      const SizedBox(height: 16),
+                                      const SizedBox(height: 10),
                                       Text(
                                         searchQuery.isEmpty 
                                             ? 'Nenhum usuário encontrado'
