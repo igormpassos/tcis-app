@@ -487,6 +487,34 @@ class ReportApiService {
     }
     return true;
   }
+
+  /// Deleta um relatório (apenas para administradores)
+  static Future<Map<String, dynamic>> deleteReport(String reportId) async {
+    try {
+      final response = await ApiService.request(
+        endpoint: '/reports/$reportId',
+        method: 'DELETE',
+      );
+      
+      if (response['success'] == true) {
+        return {
+          'success': true,
+          'message': response['message'] ?? 'Relatório deletado com sucesso',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response['message'] ?? 'Erro ao deletar relatório',
+        };
+      }
+      
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erro ao deletar relatório: $e',
+      };
+    }
+  }
 }
 
 // Extensão para firstOrNull se não existir

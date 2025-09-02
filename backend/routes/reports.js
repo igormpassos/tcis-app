@@ -2,7 +2,9 @@ const express = require('express');
 const { body, query, param } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const validate = require('../middleware/validation');
-const { requireAdmin, authenticateToken } = require('../middleware/auth');
+const { requireAdmin, requireRole, authenticateToken } = require('../middleware/auth');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -827,8 +829,8 @@ router.put('/:id', updateReportValidation, validate, async (req, res) => {
   }
 });
 
-// DELETE /api/reports/:id - Excluir relatório
-router.delete('/:id', [
+// DELETE /api/reports/:id - Excluir relatório (apenas admin)
+router.delete('/:id', requireRole('ADMIN'), [
   param('id')
     .notEmpty()
     .withMessage('ID do relatório é obrigatório')
@@ -838,19 +840,9 @@ router.delete('/:id', [
   try {
     const { id } = req.params;
 
-    // Verificar se o relatório existe
-    // Admins podem excluir qualquer relatório, usuários comuns só os próprios
-    const whereCondition = {
-      id
-    };
-    
-    // Se não for admin, adicionar filtro por userId
-    if (req.user.role !== 'ADMIN') {
-      whereCondition.userId = req.user.id;
-    }
-
-    const report = await prisma.report.findFirst({
-      where: whereCondition
+    // Buscar relatório com todas as informações necessárias
+    const report = await prisma.report.findUnique({
+      where: { id }
     });
 
     if (!report) {
@@ -860,19 +852,28 @@ router.delete('/:id', [
       });
     }
 
-    // Excluir relatório (as imagens são excluídas automaticamente devido ao onDelete: Cascade)
+    // Extrair nome da pasta a partir do prefix e ID do relatório
+    const folderName = `${report.prefix}-${report.id}`;
+    const folderPath = path.join(__dirname, '../uploads', folderName);
+
+    // Excluir pasta completa com todos os arquivos (imagens e PDF)
+    if (fs.existsSync(folderPath)) {
+      try {
+        fs.rmSync(folderPath, { recursive: true, force: true });
+        console.log(`✅ Pasta excluída: ${folderPath}`);
+      } catch (fileError) {
+        console.warn(`⚠️ Erro ao excluir pasta ${folderPath}:`, fileError.message);
+      }
+    }
+
+    // Excluir relatório do banco de dados
     await prisma.report.delete({
       where: { id }
     });
 
-    // TODO: Excluir arquivos físicos das imagens se necessário
-    // for (const image of report.images) {
-    //   // Excluir arquivo físico
-    // }
-
     res.json({
       success: true,
-      message: 'Relatório excluído com sucesso'
+      message: 'Relatório e todos os seus arquivos foram excluídos com sucesso'
     });
 
   } catch (error) {

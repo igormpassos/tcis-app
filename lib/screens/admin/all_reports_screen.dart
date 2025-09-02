@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants.dart';
 import '../../services/admin_service.dart';
+import '../../services/report_api_service.dart';
 import '../../controllers/auth_controller.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -490,13 +491,23 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
                                                 ),
                                             ],
                                           ),
-                                          trailing: report['pdfUrl'] != null
-                                              ? IconButton(
+                                          trailing: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (report['pdfUrl'] != null) ...[
+                                                IconButton(
                                                   icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
                                                   onPressed: () => openPdf(report['pdfUrl']),
                                                   tooltip: 'Abrir PDF',
-                                                )
-                                              : null,
+                                                ),
+                                              ],
+                                              IconButton(
+                                                icon: const Icon(Icons.delete, color: Colors.red),
+                                                onPressed: () => _showDeleteConfirmationDialog(report),
+                                                tooltip: 'Excluir relatório',
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       );
                                     },
@@ -511,5 +522,164 @@ class _AllReportsScreenState extends State<AllReportsScreen> {
         ),
       ),
     );
+  }
+
+  /// Exibe modal de confirmação para deletar relatório
+  void _showDeleteConfirmationDialog(Map<String, dynamic> report) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          icon: const Icon(
+            Icons.warning,
+            color: Colors.red,
+            size: 48,
+          ),
+          title: const Text(
+            'Excluir Relatório',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tem certeza que deseja excluir o relatório?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Prefixo: ${report['prefix'] ?? 'N/A'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('Terminal: ${report['terminal']?['name'] ?? 'N/A'}'),
+                    Text('Usuário: ${report['user']?['name'] ?? 'N/A'}'),
+                    if (report['createdAt'] != null)
+                      Text(
+                        'Data: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(report['createdAt']))}',
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  border: Border.all(color: Colors.red.shade200),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'ATENÇÃO: Esta ação é irreversível! Todos os dados do relatório e seus arquivos (imagens e PDF) serão permanentemente excluídos.',
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteReport(report);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Deleta o relatório
+  Future<void> _deleteReport(Map<String, dynamic> report) async {
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Excluindo relatório...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      final result = await ReportApiService.deleteReport(report['id']);
+      
+      if (mounted) {
+        Navigator.of(context).pop(); // Fecha o loading
+        
+        if (result['success'] == true) {
+          // Sucesso - atualizar lista
+          setState(() {
+            reports.removeWhere((r) => r['id'] == report['id']);
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Relatório excluído com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          // Erro
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Erro ao excluir relatório'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Fecha o loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao excluir relatório: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
