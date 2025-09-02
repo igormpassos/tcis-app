@@ -8,8 +8,6 @@ PODS:
   - Flutter (1.0.0)
   - flutter_native_splash (2.4.3):
     - Flutter
-  - heic_to_jpg (0.0.1):
-    - Flutter
   - image_picker_ios (0.0.1):
     - Flutter
   - open_file_ios (0.0.1):
@@ -39,7 +37,6 @@ DEPENDENCIES:
   - file_selector_ios (from `.symlinks/plugins/file_selector_ios/ios`)
   - Flutter (from `Flutter`)
   - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
-  - heic_to_jpg (from `.symlinks/plugins/heic_to_jpg/ios`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - open_file_ios (from `.symlinks/plugins/open_file_ios/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
@@ -62,8 +59,6 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_native_splash:
     :path: ".symlinks/plugins/flutter_native_splash/ios"
-  heic_to_jpg:
-    :path: ".symlinks/plugins/heic_to_jpg/ios"
   image_picker_ios:
     :path: ".symlinks/plugins/image_picker_ios/ios"
   open_file_ios:
@@ -91,7 +86,6 @@ SPEC CHECKSUMS:
   file_selector_ios: f92e583d43608aebc2e4a18daac30b8902845502
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
-  heic_to_jpg: d04c41e3b851aff714eb9236cc01bd621c05550f
   image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
   open_file_ios: 5ff7526df64e4394b4fe207636b67a95e83078bb
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564

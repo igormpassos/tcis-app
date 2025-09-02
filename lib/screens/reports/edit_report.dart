@@ -195,10 +195,33 @@ class _EditReportScreenState extends State<EditReportScreen> {
     setState(() {}); // Força atualização da UI após carregar os dados
   }
 
-    // Verifica se é um relatório do servidor (UUID format)
+    // Verifica se é um relatório do servidor
   bool _isServerReport() {
-    // UUID tem 36 caracteres no formato 8-4-4-4-12
-    return widget.report.id.length == 36 && widget.report.id.contains('-');
+    // Relatórios do servidor são diferenciados por:
+    // 1. Têm status diferente de 0 (rascunho) OU
+    // 2. Têm URLs de imagens do servidor OU  
+    // 3. Têm pathPdf com URL do servidor
+    
+    // Se o status não é 0 (rascunho), provavelmente veio do servidor
+    if (widget.report.status != 0) {
+      return true;
+    }
+    
+    // Se tem imagens com URLs do servidor (começam com 'uploads/')
+    final hasServerImages = widget.report.imagens.any(
+      (img) => img.startsWith('uploads/') || img.startsWith('http')
+    );
+    if (hasServerImages) {
+      return true;
+    }
+    
+    // Se tem PDF com URL do servidor
+    if (widget.report.pathPdf.startsWith('uploads/') || widget.report.pathPdf.startsWith('http')) {
+      return true;
+    }
+    
+    // Caso contrário, é um relatório local (rascunho)
+    return false;
   }
 
   // Extrai o nome da pasta existente a partir das URLs das imagens
