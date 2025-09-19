@@ -135,6 +135,7 @@ class ReportApiService {
       
       final reportId = createResponse['data']['id'];
       final serverPrefix = createResponse['data']['prefix'] ?? report.prefixo;
+      final sequentialId = createResponse['data']['sequentialId']; // Pegar o ID sequencial da resposta
       
       // PASSO 2: Upload das imagens
       List<String> imageUrls = [];
@@ -152,13 +153,14 @@ class ReportApiService {
       
       // PASSO 3: Gerar PDF com as imagens já no servidor usando o prefixo correto
       
-      // Criar uma cópia do relatório com o prefixo atualizado do servidor
-      final reportWithServerPrefix = FullReportModel.fromJson({
+      // Criar uma cópia do relatório com o prefixo e sequentialId atualizados do servidor
+      final reportWithServerData = FullReportModel.fromJson({
         ...report.toJson(),
         'prefixo': serverPrefix,
+        'sequentialId': sequentialId,
       });
       
-      final pdfPath = await _generatePdfWithServerImages(reportWithServerPrefix, imageUrls);
+      final pdfPath = await _generatePdfWithServerImages(reportWithServerData, imageUrls);
       final generatedPdfFile = File(pdfPath);
       
       // PASSO 4: Upload do PDF (usando a mesma pasta das imagens)
