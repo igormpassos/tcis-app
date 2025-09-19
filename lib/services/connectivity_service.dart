@@ -65,6 +65,7 @@ class ConnectivityService {
 
   /// Teste rápido de conectividade para Android
   static Future<bool> _testInternetConnectionFast() async {
+    // Primeiro tenta conectar nos DNS públicos
     for (String host in _testHosts) {
       try {
         final socket = await Socket.connect(host, 53, timeout: const Duration(seconds: 2));
@@ -74,7 +75,26 @@ class ConnectivityService {
         continue;
       }
     }
-    return false;
+    
+    // Se falhar, tenta um teste HTTP simples com o próprio servidor
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 3);
+      final request = await client.getUrl(Uri.parse('https://api.tcisbrasil.com.br/health'));
+      final response = await request.close();
+      await response.drain();
+      client.close();
+      return response.statusCode == 200;
+    } catch (e) {
+      // Se falhar, tenta método tradicional como último recurso
+      try {
+        final result = await InternetAddress.lookup('google.com')
+            .timeout(const Duration(seconds: 2));
+        return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+      } catch (e) {
+        return false;
+      }
+    }
   }
 
   /// Stream para monitorar mudanças de conectividade com verificação real
