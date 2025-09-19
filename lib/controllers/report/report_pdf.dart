@@ -60,6 +60,7 @@ Future<String> generatePdf({
   required String? fornecedorAcompanhou,
   required TextEditingController observacoesController,
   required List<Map<String, dynamic>> images,
+  String? sequentialId, // Novo parâmetro para ID sequencial
 }) async {
   final pdf = pw.Document();
 
@@ -88,14 +89,13 @@ Future<String> generatePdf({
         (a, b) =>
             (a['timestamp'] as DateTime).compareTo(b['timestamp'] as DateTime),
       );
-
     } else {
       // Image not found or invalid
     }
   }
 
   // Função para o cabeçalho
-  pw.Widget buildHeader() {
+  pw.Widget buildHeader(String? sequentialId) {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(15),
@@ -118,9 +118,18 @@ Future<String> generatePdf({
               textAlign: pw.TextAlign.center,
             ),
           ),
-          pw.Text(
-            prefixoController.text,
-            style: pw.TextStyle(color: PdfColors.white),
+          pw.Column(
+            children: [
+              pw.Text(
+                prefixoController.text,
+                style: pw.TextStyle(color: PdfColors.white),
+              ),
+              if (sequentialId != null)
+                pw.Text(
+                  'ID: $sequentialId',
+                  style: pw.TextStyle(color: PdfColors.white, fontSize: 8),
+                ),
+            ],
           ),
         ],
       ),
@@ -283,7 +292,9 @@ Future<String> generatePdf({
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     pw.SizedBox(width: 5),
-                    pw.Text(_getDisplayFornecedores(selectedFornecedores, fornecedor)),
+                    pw.Text(
+                      _getDisplayFornecedores(selectedFornecedores, fornecedor),
+                    ),
                   ],
                 ),
                 pw.Row(
@@ -293,7 +304,9 @@ Future<String> generatePdf({
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     pw.SizedBox(width: 5),
-                    pw.Text(_getDisplayProdutos(selectedProdutos, selectedProduto)),
+                    pw.Text(
+                      _getDisplayProdutos(selectedProdutos, selectedProduto),
+                    ),
                   ],
                 ),
                 pw.Row(
@@ -515,7 +528,7 @@ Future<String> generatePdf({
   pdf.addPage(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
-      header: (pw.Context context) => buildHeader(),
+      header: (pw.Context context) => buildHeader(sequentialId),
       footer: (pw.Context context) => buildFooter(),
       build:
           (pw.Context context) => [
@@ -550,7 +563,7 @@ Future<String> generatePdf({
     for (var chunk in imageChunks) {
       pdf.addPage(
         pw.MultiPage(
-          header: (pw.Context context) => buildHeader(),
+          header: (pw.Context context) => buildHeader(sequentialId),
           footer: (pw.Context context) => buildFooter(),
           pageFormat: PdfPageFormat.a4,
           build:
@@ -593,7 +606,7 @@ Future<String> generatePdf({
   /*  if (imagesBytes.isNotEmpty) {
     pdf.addPage(
       pw.MultiPage(
-        header: (pw.Context context) => buildHeader(),
+        header: (pw.Context context) => buildHeader(sequentialId),
         footer: (pw.Context context) => buildFooter(),
         pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) => [
@@ -628,6 +641,7 @@ Future<String> generatePdf({
 
   final reportData = FullReportModel(
     id: uuid.v4(),
+    sequentialId: sequentialId,
     status: 1, // status 1 para "Concluido"
     prefixo: prefixoController.text,
     terminal: selectedTerminal ?? '',
@@ -674,4 +688,59 @@ String _getDisplayProdutos(List<String>? produtos, String? produto) {
     return produtos.join(' / ');
   }
   return produto ?? '';
+}
+
+// Função para gerar PDF a partir de um FullReportModel existente
+Future<String> generatePdfFromModel(FullReportModel report) async {
+  // Converter dados do modelo para os controladores necessários
+  final prefixoController = TextEditingController(text: report.prefixo);
+  final dataInicioController = TextEditingController(text: report.dataInicio);
+  final horarioChegadaController = TextEditingController(
+    text: report.horarioChegada,
+  );
+  final horarioInicioController = TextEditingController(
+    text: report.horarioInicio,
+  );
+  final horarioTerminoController = TextEditingController(
+    text: report.horarioTermino,
+  );
+  final horarioSaidaController = TextEditingController(
+    text: report.horarioSaida,
+  );
+  final dataTerminoController = TextEditingController(text: report.dataTermino);
+  final observacoesController = TextEditingController(text: report.observacoes);
+
+  // Converter paths de imagens para o formato esperado
+  List<Map<String, dynamic>> images =
+      report.imagens.map((imagePath) {
+        return {'file': File(imagePath), 'timestamp': DateTime.now()};
+      }).toList();
+
+  return generatePdf(
+    prefixoController: prefixoController,
+    selectedTerminal: report.terminal,
+    selectedProduto: report.produto,
+    selectedVagao: null,
+    colaborador: report.colaborador,
+    fornecedor: report.fornecedor,
+    selectedValue: null,
+    selectedProdutos: report.produtos.isNotEmpty ? report.produtos : null,
+    selectedFornecedores:
+        report.fornecedores.isNotEmpty ? report.fornecedores : null,
+    dataInicioController: dataInicioController,
+    horarioChegadaController: horarioChegadaController,
+    horarioInicioController: horarioInicioController,
+    horarioTerminoController: horarioTerminoController,
+    horarioSaidaController: horarioSaidaController,
+    dataTerminoController: dataTerminoController,
+    houveContaminacao: report.houveContaminacao,
+    contaminacaoDescricao: report.contaminacaoDescricao,
+    materialHomogeneo: report.materialHomogeneo,
+    umidadeVisivel: report.umidadeVisivel,
+    houveChuva: report.houveChuva,
+    fornecedorAcompanhou: report.fornecedorAcompanhou,
+    observacoesController: observacoesController,
+    images: images,
+    sequentialId: report.sequentialId, // Passar o ID sequencial do modelo
+  );
 }

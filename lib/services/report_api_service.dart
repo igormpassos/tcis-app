@@ -266,6 +266,7 @@ class ReportApiService {
       fornecedorAcompanhou: report.fornecedorAcompanhou,
       observacoesController: TextEditingController(text: report.observacoes),
       images: tempImages,
+      sequentialId: report.sequentialId, // Adicionar ID sequencial
     );
     
     

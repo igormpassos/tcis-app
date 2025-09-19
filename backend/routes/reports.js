@@ -65,6 +65,44 @@ async function generateReportPrefix(terminalId, clientId, endDateTime) {
   }
 }
 
+// Função para gerar ID sequencial no formato YYYYMM0000
+async function generateSequentialId() {
+  try {
+    const now = new Date();
+    const year = now.getFullYear().toString();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const yearMonth = `${year}${month}`;
+
+    // Buscar o último sequentialId de todos os relatórios (não apenas do mês atual)
+    const lastReport = await prisma.report.findFirst({
+      where: {
+        sequentialId: {
+          not: null
+        }
+      },
+      orderBy: {
+        sequentialId: 'desc'
+      }
+    });
+
+    let nextSequential = 1;
+    if (lastReport && lastReport.sequentialId) {
+      // Extrair apenas o número sequencial (últimos dígitos após YYYYMM)
+      const sequentialPart = lastReport.sequentialId.substring(6);
+      const lastSequential = parseInt(sequentialPart);
+      nextSequential = lastSequential + 1;
+    }
+
+    // Formatar o ID sequencial: YYYYMM + número sequencial contínuo
+    const sequentialId = `${yearMonth}${nextSequential}`;
+    
+    return sequentialId;
+  } catch (error) {
+    console.error('Erro ao gerar ID sequencial:', error);
+    throw error;
+  }
+}
+
 // Validações
 const createReportValidation = [
   body('prefix')
@@ -590,11 +628,24 @@ router.post('/', createReportValidation, validate, async (req, res) => {
       });
     }
 
+    // Gerar ID sequencial
+    let sequentialId;
+    try {
+      sequentialId = await generateSequentialId();
+    } catch (sequentialError) {
+      console.error('Erro ao gerar ID sequencial:', sequentialError);
+      return res.status(500).json({
+        success: false,
+        message: `Erro ao gerar ID sequencial: ${sequentialError.message}`
+      });
+    }
+
     // Criar relatório com arrays de IDs
     
     const report = await prisma.report.create({
       data: {
         prefix: finalPrefix,
+        sequentialId: sequentialId,
         terminalId,
         clientId,
         userId: employeeUserId || req.user.id, // Usar o colaborador selecionado ou o usuário logado

@@ -469,6 +469,7 @@ class _EditReportScreenState extends State<EditReportScreen> {
         fornecedorAcompanhou: fornecedorAcompanhou,
         observacoesController: observacoesController,
         images: _images,
+        sequentialId: widget.report.sequentialId, // Usar o ID sequencial do relatório existente
       );
 
       // Salva o relatório final com o path atualizado

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 class FullReportModel {
   final String id;
+  final String? sequentialId; // ID sequencial no formato YYYYMM000
   final String prefixo;
   final String terminal;
   final String produto; // DEPRECATED - usar produtos
@@ -33,6 +34,7 @@ class FullReportModel {
 
   FullReportModel({
     required this.id,
+    this.sequentialId,
     required this.prefixo,
     required this.terminal,
     required this.produto,
@@ -64,6 +66,7 @@ class FullReportModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'sequentialId': sequentialId,
       'prefixo': prefixo,
       'terminal': terminal,
       'produto': produto,
@@ -96,6 +99,7 @@ class FullReportModel {
   factory FullReportModel.fromJson(Map<String, dynamic> json) {
     return FullReportModel(
       id: json['id'],
+      sequentialId: json['sequentialId'],
       prefixo: json['prefixo'],
       terminal: json['terminal'],
       produto: json['produto'],
@@ -146,6 +150,7 @@ class FullReportModel {
 
     return FullReportModel(
       id: serverData['id'] ?? '',
+      sequentialId: serverData['sequentialId'],
       prefixo: serverData['prefix'] ?? '',
       terminal: serverData['terminal'] != null 
           ? '${serverData['terminal']['code']} - ${serverData['terminal']['name']}'
@@ -183,6 +188,7 @@ class FullReportModel {
 
   FullReportModel copyWith({
     String? id,
+    String? sequentialId,
     String? prefixo,
     String? terminal,
     String? produto,
@@ -212,6 +218,7 @@ class FullReportModel {
   }) {
     return FullReportModel(
       id: id ?? this.id,
+      sequentialId: sequentialId ?? this.sequentialId,
       prefixo: prefixo ?? this.prefixo,
       terminal: terminal ?? this.terminal,
       produto: produto ?? this.produto,

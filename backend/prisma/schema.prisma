@@ -96,6 +96,7 @@ model Client {
 
 model Report {
   id                       String    @id @default(uuid())
+  sequentialId             String?   @unique
   prefix                   String
   status                   Int       @default(0)
   terminalId               Int?

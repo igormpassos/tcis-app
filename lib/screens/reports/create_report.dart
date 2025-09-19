@@ -202,6 +202,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
           fornecedorAcompanhou: fornecedorAcompanhou,
           observacoesController: observacoesController,
           images: _images,
+          sequentialId: null, // Null para novos relatórios (será definido pela API)
         );
       } catch (e) {
         ScaffoldMessenger.of(
