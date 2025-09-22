@@ -25,7 +25,10 @@ WORKDIR /home/flutter
 ENV FLUTTER_HOME="/home/flutter/flutter"
 ENV PATH="$FLUTTER_HOME/bin:$PATH"
 
-RUN git clone https://github.com/flutter/flutter.git -b stable --depth 1 $FLUTTER_HOME
+# Quebrar cache do Docker para forçar download da versão correta
+RUN echo "Flutter 3.24.3 - $(date)" > /tmp/flutter_version
+
+RUN git clone https://github.com/flutter/flutter.git -b 3.24.3 --depth 1 $FLUTTER_HOME
 
 # Pré-download das dependências Flutter
 RUN flutter doctor
