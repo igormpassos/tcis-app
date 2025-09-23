@@ -379,6 +379,7 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         dataController: dataController,
         manager: _submissionManager!,
         imageFiles: imageFiles,
+        imageMetadata: _images, // Passar metadados completos das imagens
       );
 
       // Aguardar resultados

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:tcis_app/model/full_report_model.dart';
@@ -109,6 +110,7 @@ class ReportApiService {
     required DataController dataController,
     required ReportSubmissionManager manager,
     List<File>? imageFiles,
+    List<Map<String, dynamic>>? imageMetadata,
   }) async {
     try {
       // PASSO 1: Criar relatório no banco de dados
@@ -156,6 +158,7 @@ class ReportApiService {
           imageUrls = await ImageUploadService.uploadImages(
             images: imageFiles,
             folderName: folderName,
+            imageMetadata: imageMetadata,
           );
           manager.markImagesUploaded(imageUrls);
         } catch (e) {
@@ -404,7 +407,7 @@ class ReportApiService {
     }
   }
 
-  /// Gera PDF usando as imagens já no servidor (só baixa quando necessário)
+  /// Gera PDF usando as imagens já no servidor ordenadas cronologicamente
   static Future<String> _generatePdfWithServerImages(
     FullReportModel report, 
     List<String> serverImageUrls
@@ -412,33 +415,112 @@ class ReportApiService {
     final tempImages = <Map<String, dynamic>>[];
     final baseUrl = ApiService.baseUrl;
     
-    // Baixar cada imagem do servidor e criar arquivo temporário
-    for (int i = 0; i < serverImageUrls.length; i++) {
-      try {
-        final imageUrl = '$baseUrl/${serverImageUrls[i]}';
-        
-        // Fazer requisição HTTP para baixar a imagem
-        final response = await http.get(Uri.parse(imageUrl));
-        
-        if (response.statusCode == 200) {
-          // Criar arquivo temporário com a imagem baixada
-          final tempDir = Directory.systemTemp;
-          final tempFile = File('${tempDir.path}/temp_pdf_image_$i.jpg');
-          await tempFile.writeAsBytes(response.bodyBytes);
-          
-          tempImages.add({
-            'file': tempFile,
-            'timestamp': DateTime.now().add(Duration(seconds: i)), // Timestamps diferentes
-          });
-          
-        } else {
+    try {
+      // Extrair nome da pasta das URLs das imagens
+      String? folderName;
+      if (serverImageUrls.isNotEmpty) {
+        final firstUrl = serverImageUrls.first;
+        final pathParts = firstUrl.split('/');
+        if (pathParts.length >= 3) {
+          folderName = pathParts[1]; // uploads/FOLDER_NAME/image.jpg
         }
-      } catch (e) {
+      }
+      
+      if (folderName != null) {
+        // Usar nova API para buscar imagens ordenadas cronologicamente
+        final orderedImages = await ImageUploadService.getOrderedImages(
+          folderName: folderName,
+        );
+        
+        // Baixar imagens na ordem cronológica correta
+        for (int i = 0; i < orderedImages.length; i++) {
+          final imageInfo = orderedImages[i];
+          try {
+            final imageUrl = '$baseUrl/${imageInfo['path']}';
+            
+            // Fazer requisição HTTP para baixar a imagem
+            final response = await http.get(Uri.parse(imageUrl));
+            
+            if (response.statusCode == 200) {
+              // Criar arquivo temporário com a imagem baixada
+              final tempDir = Directory.systemTemp;
+              final tempFile = File('${tempDir.path}/temp_pdf_image_$i.jpg');
+              await tempFile.writeAsBytes(response.bodyBytes);
+              
+              // Usar timestamp original da imagem
+              final originalTimestamp = DateTime.tryParse(imageInfo['originalTimestamp']) ?? DateTime.now();
+              
+              tempImages.add({
+                'file': tempFile,
+                'timestamp': originalTimestamp,
+              });
+              
+            } else {
+              debugPrint('Erro ao baixar imagem ${imageInfo['filename']}: ${response.statusCode}');
+            }
+          } catch (e) {
+            debugPrint('Erro ao processar imagem ${imageInfo['filename']}: $e');
+          }
+        }
+      } else {
+        // Fallback para método antigo se não conseguir determinar a pasta
+        for (int i = 0; i < serverImageUrls.length; i++) {
+          try {
+            final imageUrl = '$baseUrl/${serverImageUrls[i]}';
+            
+            // Fazer requisição HTTP para baixar a imagem
+            final response = await http.get(Uri.parse(imageUrl));
+            
+            if (response.statusCode == 200) {
+              // Criar arquivo temporário com a imagem baixada
+              final tempDir = Directory.systemTemp;
+              final tempFile = File('${tempDir.path}/temp_pdf_image_$i.jpg');
+              await tempFile.writeAsBytes(response.bodyBytes);
+              
+              tempImages.add({
+                'file': tempFile,
+                'timestamp': DateTime.now().add(Duration(seconds: i)), // Timestamps diferentes
+              });
+              
+            } else {
+              debugPrint('Erro ao baixar imagem $i: ${response.statusCode}');
+            }
+          } catch (e) {
+            debugPrint('Erro ao processar imagem $i: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Erro ao buscar imagens ordenadas: $e');
+      // Fallback para método antigo
+      for (int i = 0; i < serverImageUrls.length; i++) {
+        try {
+          final imageUrl = '$baseUrl/${serverImageUrls[i]}';
+          
+          // Fazer requisição HTTP para baixar a imagem
+          final response = await http.get(Uri.parse(imageUrl));
+          
+          if (response.statusCode == 200) {
+            // Criar arquivo temporário com a imagem baixada
+            final tempDir = Directory.systemTemp;
+            final tempFile = File('${tempDir.path}/temp_pdf_image_$i.jpg');
+            await tempFile.writeAsBytes(response.bodyBytes);
+            
+            tempImages.add({
+              'file': tempFile,
+              'timestamp': DateTime.now().add(Duration(seconds: i)), // Timestamps diferentes
+            });
+            
+          } else {
+            debugPrint('Erro ao baixar imagem $i: ${response.statusCode}');
+          }
+        } catch (e) {
+          debugPrint('Erro ao processar imagem $i: $e');
+        }
       }
     }
     
-    
-    // Gerar PDF com as imagens baixadas
+    // Gerar PDF com as imagens baixadas (já ordenadas cronologicamente)
     final pdfPath = await generatePdf(
       prefixoController: TextEditingController(text: report.prefixo),
       selectedTerminal: report.terminal,

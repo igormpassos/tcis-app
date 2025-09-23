@@ -40,6 +40,7 @@ class ImageUploadService {
   static Future<List<String>> uploadImages({
     required List<File> images,
     required String folderName,
+    List<Map<String, dynamic>>? imageMetadata,
   }) async {
     try {
       final List<String> uploadedPaths = [];
@@ -51,6 +52,15 @@ class ImageUploadService {
         // Processar imagem (redimensionar e comprimir)
         final processedImage = await processImage(image);
         
+        // Obter metadados da imagem se fornecidos
+        String? originalTimestamp;
+        if (imageMetadata != null && i < imageMetadata.length) {
+          final metadata = imageMetadata[i];
+          if (metadata['timestamp'] != null) {
+            originalTimestamp = (metadata['timestamp'] as DateTime).toIso8601String();
+          }
+        }
+        
         // Preparar dados para upload
         final fileName = 'image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
         final formData = FormData.fromMap({
@@ -59,6 +69,8 @@ class ImageUploadService {
             filename: fileName,
           ),
           'folder': folderName,
+          if (originalTimestamp != null) 'timestamp': originalTimestamp,
+          'uploadOrder': i, // Ordem de upload para desempate
         });
 
         // Upload
@@ -159,5 +171,38 @@ class ImageUploadService {
         '${now.second.toString().padLeft(2, '0')}';
     
     return '$prefix-$formattedDate-$formattedTime';
+  }
+
+  /// Busca imagens de uma pasta ordenadas cronologicamente
+  static Future<List<Map<String, dynamic>>> getOrderedImages({
+    required String folderName,
+  }) async {
+    try {
+      final baseUrl = ApiService.baseUrl;
+      final apiService = ApiService();
+      await apiService.loadToken();
+
+      final response = await _dio.get(
+        '$baseUrl/uploads/images/$folderName/ordered',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer ${apiService.currentToken}',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        } else {
+          throw Exception('Erro ao buscar imagens: ${data['message']}');
+        }
+      } else {
+        throw Exception('Erro HTTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 }
