@@ -21,6 +21,8 @@ import '../../controllers/data_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../services/connectivity_service.dart';
 import '../../services/report_api_service.dart';
+import '../../services/report_submission_manager.dart';
+import '../../widgets/report_submission_progress_dialog.dart';
 import '../../utils/datetime_utils.dart';
 
 class ReportEntryScreen extends StatefulWidget {
@@ -79,6 +81,13 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    
+    // Limpar gerenciador de submissão se existir
+    if (_submissionManager != null) {
+      ReportSubmissionManager.clearSession(_submissionManager!.sessionId);
+      _submissionManager = null;
+    }
+    
     super.dispose();
   }
 
@@ -214,7 +223,10 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
     }
   }
 
-  /// Envia relatório para o servidor
+  // Gerenciador de submissão
+  ReportSubmissionManager? _submissionManager;
+
+  /// Envia relatório para o servidor com controle robusto de estado
   Future<void> submitToServer() async {
     // Proteção contra múltiplos cliques
     if (_isSubmitting) {
@@ -265,12 +277,10 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         return;
       }
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const CustomLoadingDialog(message: "Enviando relatório..."),
-      );
-
+      // Criar gerenciador de submissão único por tentativa
+      final sessionId = const Uuid().v4();
+      _submissionManager = ReportSubmissionManager.getInstance(sessionId);
+      
       // Preparar arquivos de imagem
       final imageFiles = <File>[];
       for (var imageData in _images) {
@@ -307,57 +317,20 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         pathPdf: '',
         dataCriacao: DateTime.now(),
         status: 1, // Finalizado
-        // Adicionar as listas multi-select
         produtos: selectedProdutos,
         fornecedores: selectedFornecedores,
       );
 
       final dataController = context.read<DataController>();
 
-      // Enviar para servidor usando o novo fluxo
-      final result = await ReportApiService.submitReport(
-        report: reportData,
-        dataController: dataController,
-        imageFiles: imageFiles,
-      );
+      // Iniciar submissão com progresso
+      await _performSubmissionWithRetry(reportData, dataController, imageFiles);
 
-      if (mounted) {
-        Navigator.of(context).pop(); // fecha loading
-
-        if (result['success'] == true) {
-          // Sucesso: mostrar mensagem e abrir PDF
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Relatório enviado com sucesso!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          // Abrir PDF usando a URL do servidor
-          final pdfUrl = result['data']['pdf_url'];
-          if (pdfUrl != null && pdfUrl.isNotEmpty) {
-            await _openServerPdf(pdfUrl);
-          }
-
-          // Voltar para tela principal indicando que houve mudança
-          Navigator.popUntil(context, (route) => route.isFirst);
-          
-        } else {
-          // Erro: mostrar mensagem
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Erro ao enviar relatório: ${result['message']}"),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // fecha loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Erro ao enviar relatório: $e"),
+            content: Text("Erro inesperado: $e"),
             backgroundColor: Colors.red,
           ),
         );
@@ -370,6 +343,128 @@ class _ReportEntryScreenState extends State<ReportEntryScreen> {
         });
       }
     }
+  }
+
+  /// Executa a submissão com controle de retry
+  Future<void> _performSubmissionWithRetry(
+    FullReportModel reportData,
+    DataController dataController,
+    List<File> imageFiles,
+  ) async {
+    if (_submissionManager == null) return;
+
+    bool showRetryDialog = false;
+
+    do {
+      // Mostrar dialog de progresso
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => ReportSubmissionProgressDialog(
+            manager: _submissionManager!,
+            onCancel: () {
+              _submissionManager?.cancel();
+            },
+          ),
+        );
+      }
+
+      // Iniciar submissão
+      final submissionFuture = _submissionManager!.startSubmission();
+      
+      // Executar submissão em paralelo
+      final apiResult = ReportApiService.submitReportWithManager(
+        report: reportData,
+        dataController: dataController,
+        manager: _submissionManager!,
+        imageFiles: imageFiles,
+      );
+
+      // Aguardar resultados
+      final results = await Future.wait([submissionFuture, apiResult]);
+      final managerResult = results[0];
+      final apiResultFinal = results[1];
+
+      if (mounted) {
+        Navigator.of(context).pop(); // fechar progress dialog
+      }
+
+      if (managerResult.success && apiResultFinal.success) {
+        // Sucesso
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Relatório enviado com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Abrir PDF
+          final pdfUrl = managerResult.data?['pdf_url'];
+          if (pdfUrl != null && pdfUrl.isNotEmpty) {
+            await _openServerPdf(pdfUrl);
+          }
+
+          // Voltar para tela principal
+          Navigator.popUntil(context, (route) => route.isFirst);
+        }
+        
+        showRetryDialog = false;
+        break;
+        
+      } else {
+        // Falha - verificar se pode tentar novamente
+        if (_submissionManager!.canRetry && mounted) {
+          showRetryDialog = await _showRetryDialog(
+            managerResult.error ?? apiResultFinal.error ?? 'Erro desconhecido',
+          );
+          
+          if (showRetryDialog) {
+            // Iniciar retry
+            await _submissionManager!.retry();
+            // Continue no loop
+          } else {
+            break;
+          }
+        } else {
+          // Não pode tentar novamente ou usuário cancelou
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(managerResult.error ?? apiResultFinal.error ?? 'Erro desconhecido'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          break;
+        }
+      }
+    } while (showRetryDialog);
+
+    // Limpar manager ao final
+    if (_submissionManager != null) {
+      ReportSubmissionManager.clearSession(_submissionManager!.sessionId);
+      _submissionManager = null;
+    }
+  }
+
+  /// Mostra dialog de retry e retorna se deve tentar novamente
+  Future<bool> _showRetryDialog(String errorMessage) async {
+    if (!mounted) return false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ReportSubmissionRetryDialog(
+        manager: _submissionManager!,
+        errorMessage: errorMessage,
+        onRetry: () => Navigator.of(context).pop(true),
+        onCancel: () => Navigator.of(context).pop(false),
+      ),
+    );
+
+    return result ?? false;
   }
 
   /// Abrir PDF do servidor

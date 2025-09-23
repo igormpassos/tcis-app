@@ -9,6 +9,7 @@ import 'package:tcis_app/controllers/data_controller.dart';
 import 'package:tcis_app/services/image_upload_service.dart';
 import 'package:tcis_app/controllers/report/report_pdf.dart';
 import 'package:tcis_app/utils/datetime_utils.dart';
+import 'package:tcis_app/services/report_submission_manager.dart';
 
 class ReportApiService {
   static final ApiService _apiService = ApiService();
@@ -101,7 +102,201 @@ class ReportApiService {
     return payload;
   }
 
-  /// Submete um relatório completo para o servidor seguindo o fluxo:
+  /// Submete um relatório completo para o servidor com gerenciamento robusto de estado
+  /// Usa ReportSubmissionManager para controle de etapas e retry
+  static Future<OperationResult<Map<String, dynamic>>> submitReportWithManager({
+    required FullReportModel report,
+    required DataController dataController,
+    required ReportSubmissionManager manager,
+    List<File>? imageFiles,
+  }) async {
+    try {
+      // PASSO 1: Criar relatório no banco de dados
+      if (manager.reportId == null) {
+        final reportData = _mapReportToApi(report, dataController);
+        
+        final createResponse = await ApiService.request(
+          endpoint: '/reports',
+          method: 'POST',
+          data: reportData,
+        );
+        
+        if (createResponse['success'] != true) {
+          String errorMessage = createResponse['message'] ?? 'Erro desconhecido';
+          if (createResponse['errors'] != null && createResponse['errors'].isNotEmpty) {
+            final errors = createResponse['errors'] as List;
+            final errorDetails = errors.map((e) => '${e['field']}: ${e['message']}').join('; ');
+            errorMessage += '\nDetalhes: $errorDetails';
+          }
+          
+          manager.markFailed(
+            'Falha ao salvar relatório: $errorMessage',
+            ErrorType.server,
+            metadata: {'response': createResponse},
+          );
+          
+          return OperationResult.failure(
+            'Falha ao salvar relatório: $errorMessage',
+            errorType: ErrorType.server,
+          );
+        }
+        
+        final reportId = createResponse['data']['id'];
+        final serverPrefix = createResponse['data']['prefix'] ?? report.prefixo;
+        final sequentialId = createResponse['data']['sequentialId'];
+        
+        manager.markCreationCompleted(reportId, serverPrefix, sequentialId);
+      }
+      
+      // PASSO 2: Upload das imagens (se necessário)
+      List<String> imageUrls = manager.uploadedImageUrls;
+      if (imageUrls.isEmpty && imageFiles != null && imageFiles.isNotEmpty) {
+        try {
+          final folderName = '${manager.serverPrefix}-${manager.reportId}';
+          imageUrls = await ImageUploadService.uploadImages(
+            images: imageFiles,
+            folderName: folderName,
+          );
+          manager.markImagesUploaded(imageUrls);
+        } catch (e) {
+          manager.markFailed(
+            'Falha no upload das imagens: $e',
+            ErrorType.upload,
+            metadata: {'step': 'image_upload', 'error': e.toString()},
+          );
+          
+          return OperationResult.failure(
+            'Falha no upload das imagens: $e',
+            errorType: ErrorType.upload,
+          );
+        }
+      } else if (imageFiles == null || imageFiles.isEmpty) {
+        manager.markImagesUploaded([]);
+      }
+      
+      // PASSO 3: Gerar PDF (se necessário)
+      if (manager.pdfUrl == null) {
+        try {
+          final reportWithServerData = FullReportModel.fromJson({
+            ...report.toJson(),
+            'prefixo': manager.serverPrefix,
+            'sequentialId': manager.sequentialId,
+          });
+          
+          final pdfPath = await _generatePdfWithServerImages(reportWithServerData, imageUrls);
+          manager.markPdfGenerated();
+          
+          // PASSO 4: Upload do PDF
+          final generatedPdfFile = File(pdfPath);
+          final folderName = '${manager.serverPrefix}-${manager.reportId}';
+          final pdfUrl = await ImageUploadService.uploadPdf(
+            pdfFile: generatedPdfFile,
+            folderName: folderName,
+            reportPrefix: manager.serverPrefix!,
+          );
+          
+          if (pdfUrl.isEmpty) {
+            manager.markFailed(
+              'Falha no upload do PDF',
+              ErrorType.upload,
+              metadata: {'step': 'pdf_upload'},
+            );
+            
+            return OperationResult.failure(
+              'Falha no upload do PDF',
+              errorType: ErrorType.upload,
+            );
+          }
+          
+          manager.markPdfUploaded(pdfUrl);
+          
+        } catch (e) {
+          ErrorType errorType = ErrorType.pdf;
+          if (e.toString().contains('upload') || e.toString().contains('network')) {
+            errorType = ErrorType.upload;
+          } else if (e.toString().contains('server') || e.toString().contains('http')) {
+            errorType = ErrorType.server;
+          }
+          
+          manager.markFailed(
+            'Falha na geração/upload do PDF: $e',
+            errorType,
+            metadata: {'step': 'pdf_generation', 'error': e.toString()},
+          );
+          
+          return OperationResult.failure(
+            'Falha na geração/upload do PDF: $e',
+            errorType: errorType,
+          );
+        }
+      }
+      
+      // PASSO 5: Atualizar relatório com URLs finais
+      try {
+        final updateResponse = await ApiService.request(
+          endpoint: '/reports/${manager.reportId}',
+          method: 'PUT',
+          data: {
+            'pdf_url': manager.pdfUrl,
+            'image_urls': manager.uploadedImageUrls,
+            'status': 1, // 1 = Em Revisão
+          },
+        );
+        
+        if (updateResponse['success'] != true) {
+          // Não falhar aqui se o resto funcionou, apenas logar
+          debugPrint('Aviso: Falha ao atualizar URLs do relatório: ${updateResponse['message']}');
+        }
+        
+        manager.markCompleted();
+        
+        return OperationResult.success({
+          'id': manager.reportId,
+          'pdf_url': manager.pdfUrl,
+          'image_urls': manager.uploadedImageUrls,
+          'sequential_id': manager.sequentialId,
+          'server_prefix': manager.serverPrefix,
+        });
+        
+      } catch (e) {
+        // Se chegou até aqui, o relatório foi criado com sucesso
+        // Apenas avisar sobre a falha na atualização
+        debugPrint('Aviso: Relatório criado mas falha ao atualizar URLs: $e');
+        
+        manager.markCompleted();
+        
+        return OperationResult.success({
+          'id': manager.reportId,
+          'pdf_url': manager.pdfUrl,
+          'image_urls': manager.uploadedImageUrls,
+          'sequential_id': manager.sequentialId,
+          'server_prefix': manager.serverPrefix,
+        });
+      }
+      
+    } catch (e) {
+      // Erro geral não capturado
+      ErrorType errorType = ErrorType.unknown;
+      if (e.toString().contains('network') || e.toString().contains('connection')) {
+        errorType = ErrorType.network;
+      } else if (e.toString().contains('server') || e.toString().contains('http')) {
+        errorType = ErrorType.server;
+      }
+      
+      manager.markFailed(
+        'Erro inesperado: $e',
+        errorType,
+        metadata: {'error': e.toString()},
+      );
+      
+      return OperationResult.failure(
+        'Erro inesperado: $e',
+        errorType: errorType,
+      );
+    }
+  }
+
+  /// Método original mantido para compatibilidade
   /// 1. Salva relatório no banco → obter ID
   /// 2. Faz upload das imagens na pasta com o ID → obter URLs
   /// 3. Gera PDF com dados + imagens → obter URL do PDF
