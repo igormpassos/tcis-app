@@ -16,8 +16,8 @@ class ImageGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8.0,
-      runSpacing: 8.0,
+      spacing: 10.0,
+      runSpacing: 10.0,
       children: [
         GestureDetector(
           onTap: onAddImage,
@@ -43,7 +43,6 @@ class ImageGrid extends StatelessWidget {
               Container(
                 width: 100,
                 height: 100,
-                margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   color: Colors.grey[300],
@@ -67,7 +66,7 @@ class ImageGrid extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(4),
-                    child: const Icon(Icons.close, color: Colors.white, size: 16),
+                    child: const Icon(Icons.close, color: Colors.white, size: 14),
                   ),
                 ),
               ),
